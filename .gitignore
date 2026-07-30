@@ -139,6 +139,9 @@ $RECYCLE.BIN/
 .gradle
 /build/
 .gradle-user-home/
+
+/codex-gradle-home/
+/codex-gradle-project-cache/
 # Ignore Gradle GUI config
 gradle-app.setting
 
@@ -211,3 +214,4 @@ networktables.json
 # FRC specific
 imgui.ini
 shuffle*.json
+

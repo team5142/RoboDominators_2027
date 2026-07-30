@@ -234,7 +234,6 @@ public class Robot extends LoggedRobot {
     }
 
     if (robotContainer != null) {
-      if (robotContainer.intakeSubsystem     != null) robotContainer.intakeSubsystem.stopAll();
       if (robotContainer.climberSubsystem    != null) robotContainer.climberSubsystem.stopAll();
       if (robotContainer.spindexerSubsystem  != null) robotContainer.spindexerSubsystem.stopAll();
       if (robotContainer.singulatorSubsystem != null) robotContainer.singulatorSubsystem.stopAll();

@@ -54,26 +54,6 @@ public class RobotState {
   }
   private NavigationPhase navigationPhase = NavigationPhase.NONE;
 
-  // Mechanism states
-  // Position of the intake arm (extension axis)
-  public enum IntakePosition {
-    HOMING,         // actively moving up to find limit switches on first enable
-    HOMING_FAILED,  // homing stalled without finding both switches — arm is blocked
-    RETRACTED,      // fully in, both limit switches triggered, encoder zeroed
-    EXTENDING,      // moving outward
-    EXTENDED,       // at full extension target rotation
-    RETRACTING,     // moving inward toward limit switches
-    AGITATING,      // partial retract to 6.5 rot, then re-extend to target
-    BUMP_LIFTING    // tiny retract during bump traversal to clear slope, gravity returns it
-  }
-
-  // Spin direction of the intake rollers
-  public enum IntakeRollerState {
-    STOPPED,
-    INTAKING,
-    REVERSING
-  }
-
   public enum ClimberState {
     IDLE,
     ACTIVE
@@ -100,10 +80,7 @@ public class RobotState {
     REVERSING  // reverse to clear a jam
   }
 
-  // Default to RETRACTED so extend/retract work when homing is disabled (ENABLE_INTAKE_HOMING = false).
-  private IntakePosition intakePosition = IntakePosition.RETRACTED;
   private ShootingZone shootingZone = ShootingZone.ALLIANCE;
-  private IntakeRollerState intakeRollerState = IntakeRollerState.STOPPED;
   private ClimberState climberState = ClimberState.IDLE;
   private SpindexerState spindexerState = SpindexerState.STOPPED;
   private SingulatorState singulatorState = SingulatorState.PAUSED;
@@ -116,10 +93,6 @@ public class RobotState {
   private int ballsShotTeleop   = 0;
   private int ballsShotEndgame  = 0;
   private int ballsPassed       = 0;
-  private boolean intakeLimitSwitch = false;
-
-  private double intakePercent = 0.0;
-  private double intakeExtensionPercent = 0.0;
   private double climberPullPercent = 0.0;
   private double climberRotationPercent = 0.0;
   
@@ -234,29 +207,6 @@ public class RobotState {
     SmartLogger.logReplay("RobotState/OperatorDriveLockout", operatorDriveLockout);
   }
 
-  public void setIntakePosition(IntakePosition pos) {
-    if (intakePosition == pos) return;
-    intakePosition = pos;
-    SmartLogger.logReplay("RobotState/Intake/Position", pos.toString());
-  }
-
-  public IntakePosition getIntakePosition() { return intakePosition; }
-
-  public void setIntakeRollerState(IntakeRollerState rollerState) {
-    if (intakeRollerState == rollerState) return;
-    intakeRollerState = rollerState;
-    SmartLogger.logReplay("RobotState/Intake/RollerState", rollerState.toString());
-  }
-
-  public IntakeRollerState getIntakeRollerState() { return intakeRollerState; }
-
-  public void setIntakeLimitSwitch(boolean pressed) {
-    if (intakeLimitSwitch == pressed) return;
-    intakeLimitSwitch = pressed;
-    SmartLogger.logReplay("RobotState/Intake/LimitSwitch", pressed);
-  }
-
-  public boolean isIntakeFullyRetracted() { return intakeLimitSwitch; }
 
   public void setSpindexerState(SpindexerState state) {
     if (this.spindexerState == state) return;
@@ -350,21 +300,6 @@ public class RobotState {
 
   public ClimberState getClimberState() { return climberState; }
 
-  public void setIntakePercent(double percent) {
-    if (Math.abs(intakePercent - percent) < 0.001) return;
-    intakePercent = percent;
-    SmartLogger.logReplay("RobotState/Intake/Percent", percent);
-  }
-
-  public double getIntakePercent() { return intakePercent; }
-
-  public void setIntakeExtensionPercent(double percent) {
-    if (Math.abs(intakeExtensionPercent - percent) < 0.001) return;
-    intakeExtensionPercent = percent;
-    SmartLogger.logReplay("RobotState/Intake/ExtensionPercent", percent);
-  }
-
-  public double getIntakeExtensionPercent() { return intakeExtensionPercent; }
 
   public void setClimberPullPercent(double percent) {
     if (Math.abs(climberPullPercent - percent) < 0.001) return;
@@ -420,3 +355,4 @@ public class RobotState {
   public double getSecondsUntilPhaseEnd() { return matchPhaseTracker.getSecondsUntilPhaseEnd(); }
   public boolean hasMatchGameData()       { return matchPhaseTracker.hasGameData(); }
 }
+

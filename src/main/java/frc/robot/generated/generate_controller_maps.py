@@ -73,10 +73,6 @@ DRIVER_LABELS = [
 OPERATOR_LABELS = [
     ("LT",        "LT: Toggle flywheels on/off",                          "left"),
     ("RT",        "RT (hold): SHOOT\n(spindexer + singulator)",            "right"),
-    ("Y",         "Y: Toggle intake extend/retract",                       "right"),
-    ("B",         "B: Toggle intake rollers on/off",                       "right"),
-    ("A",         "A: Agitate intake",                                     "right"),
-    ("X",         "X (hold): Reverse rollers (spit)",                      "left"),
     ("DPAD_LEFT",  "D-pad LEFT (hold): Rotate turret CCW",                 "left"),
     ("DPAD_RIGHT", "D-pad RIGHT (hold): Rotate turret CW",                 "right"),
     ("DPAD_UP",    "D-pad UP: Hood step up",                               "left"),
@@ -185,3 +181,4 @@ def generate(labels, title, out_name):
 
 generate(DRIVER_LABELS,   TITLE_DRIVER,   "controller_driver.jpg")
 generate(OPERATOR_LABELS, TITLE_OPERATOR, "controller_operator.jpg")
+

@@ -37,7 +37,6 @@ public class RobotContainer {
   private static final boolean ENABLE_CONSOLE_LOGGING = !COMPETITION_MODE;
   private static final boolean USE_TOUCHSCREEN_OPERATOR = false;
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
-  private static final boolean ENABLE_INTAKE = true;
   private static final boolean ENABLE_CLIMBER = false;
   private static final boolean ENABLE_SPINDEXER = true;
   private static final boolean ENABLE_SINGULATOR = true;
@@ -65,7 +64,6 @@ public class RobotContainer {
   final PoseEstimatorSubsystem poseEstimator;
   final TagVisionSubsystem tagVisionSubsystem;
   public final LEDSubsystem ledSubsystem;
-  IntakeSubsystem intakeSubsystem;
   ClimberSubsystem climberSubsystem;
   SpindexerSubsystem spindexerSubsystem;
   SingulatorSubsystem singulatorSubsystem;
@@ -106,17 +104,9 @@ public class RobotContainer {
     poseEstimator = new PoseEstimatorSubsystem(driveSubsystem, this.robotState, questNav);
     tagVisionSubsystem = new TagVisionSubsystem(poseEstimator);
     ledSubsystem = new LEDSubsystem(this.robotState);
-    intakeSubsystem = ENABLE_INTAKE ? new IntakeSubsystem(this.robotState) : null;
-    if (intakeSubsystem != null) {
-      // No auto-start on extend — rollers only run while B is held.
-      intakeSubsystem.setOnExtendComplete(null);
-    }
     //climberSubsystem = ENABLE_CLIMBER ? new ClimberSubsystem(this.robotState) : null;
     spindexerSubsystem = ENABLE_SPINDEXER ? new SpindexerSubsystem(this.robotState) : null;
     singulatorSubsystem = ENABLE_SINGULATOR ? new SingulatorSubsystem(this.robotState) : null;
-    if (!ENABLE_INTAKE) {
-      SmartLogger.logConsole("Intake disabled until hardware is ready", "Startup");
-    }
     if (!ENABLE_CLIMBER) {
       SmartLogger.logConsole("Climber disabled until hardware is ready", "Startup");
     }
@@ -262,39 +252,6 @@ public class RobotContainer {
     // ========== END NORMAL OPERATION BUTTONS ==========
 
     // ========== OPERATOR CONTROLLER BINDINGS ==========
-
-    // --- INTAKE ---
-    // Y: toggle extend/retract. Rollers are not started automatically — use B to run them.
-    new JoystickButton(operatorController, XboxController.Button.kY.value)
-        .onTrue(Commands.runOnce(() -> {
-          if (intakeSubsystem == null) return;
-          RobotState.IntakePosition pos = robotState.getIntakePosition();
-          boolean armIsOut = pos == RobotState.IntakePosition.EXTENDED
-              || pos == RobotState.IntakePosition.EXTENDING
-              || pos == RobotState.IntakePosition.AGITATING
-              || pos == RobotState.IntakePosition.BUMP_LIFTING;
-          if (armIsOut) {
-            intakeSubsystem.stopRollers();
-            intakeSubsystem.retract();
-          } else {
-            intakeSubsystem.extend();
-          }
-        }));
-    // X (hold): reverse rollers to spit out. Rollers stop on release.
-    new JoystickButton(operatorController, XboxController.Button.kX.value)
-        .whileTrue(Commands.startEnd(
-          () -> { if (intakeSubsystem != null) intakeSubsystem.spinOut(); },
-          () -> { if (intakeSubsystem != null) intakeSubsystem.stopRollers(); }));
-    // A (press): agitate — disabled for now
-    // new JoystickButton(operatorController, XboxController.Button.kA.value)
-    //     .onTrue(Commands.runOnce(() -> { if (intakeSubsystem != null) intakeSubsystem.agitate(); }));
-    // B (hold): run intake rollers while pressed, stop on release.
-    new JoystickButton(operatorController, XboxController.Button.kB.value)
-        .whileTrue(Commands.startEnd(
-          () -> { if (intakeSubsystem != null) intakeSubsystem.spinIn(); },
-          () -> { if (intakeSubsystem != null) intakeSubsystem.stopRollers(); }));
-    // --- END INTAKE ---
-
     // Right stick pulled down (Y > 0.9): reverse singulator and spindexer to clear a jam. Stops on release.
     new Trigger(() -> operatorController.getRightY() > 0.9)
         .whileTrue(Commands.startEnd(
@@ -524,3 +481,4 @@ public class RobotContainer {
     return COMPETITION_MODE ? RED_REBUILT_RIGHT_CORNER : RED_PRACTICE_SEED;
   }
 }
+
