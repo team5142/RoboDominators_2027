@@ -20,25 +20,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.commands.drive.DriveWithJoysticks;
-import frc.robot.commands.drive.DynamicBumpTraversalCommand;
-import frc.robot.commands.drive.AllianceZoneSweepSimplifiedCommand;
-import frc.robot.commands.drive.NeutralZoneSweepSimplifiedCommand;
-import frc.robot.commands.drive.OpposingAllianceZoneSweepSimplifiedCommand;
-import frc.robot.commands.drive.WallTraversalCommand;
-import frc.robot.commands.drive.SnapToHeadingDynamic;
 import frc.robot.commands.drive.SmartDriveToPosition;
 import frc.robot.commands.util.SetStartingPoseCommand;
 import frc.robot.subsystems.*;
-import frc.robot.subsystems.turret.TurretIOCTRE;
-import frc.robot.subsystems.turret.TurretSubsystem;
-import frc.robot.subsystems.turret.TurretAimPipeline;
-import frc.robot.subsystems.turret.TurretAimSolver;
-import frc.robot.subsystems.turret.TurretTargetSelector;
 import frc.robot.util.SmartLogger;
 import frc.robot.util.TouchscreenInterface;
 
@@ -50,7 +37,6 @@ public class RobotContainer {
   private static final boolean ENABLE_CONSOLE_LOGGING = !COMPETITION_MODE;
   private static final boolean USE_TOUCHSCREEN_OPERATOR = false;
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
-  private static final boolean ENABLE_TURRET = true;   // rotation + hall sensor testing — hood/flywheel bindings remain commented out
   private static final boolean ENABLE_INTAKE = true;
   private static final boolean ENABLE_CLIMBER = false;
   private static final boolean ENABLE_SPINDEXER = true;
@@ -79,7 +65,6 @@ public class RobotContainer {
   final PoseEstimatorSubsystem poseEstimator;
   final TagVisionSubsystem tagVisionSubsystem;
   public final LEDSubsystem ledSubsystem;
-  TurretSubsystem turretSubsystem;
   IntakeSubsystem intakeSubsystem;
   ClimberSubsystem climberSubsystem;
   SpindexerSubsystem spindexerSubsystem;
@@ -121,68 +106,14 @@ public class RobotContainer {
     poseEstimator = new PoseEstimatorSubsystem(driveSubsystem, this.robotState, questNav);
     tagVisionSubsystem = new TagVisionSubsystem(poseEstimator);
     ledSubsystem = new LEDSubsystem(this.robotState);
-    turretSubsystem = ENABLE_TURRET ? new TurretSubsystem(this.robotState, new TurretIOCTRE()) : null;
     intakeSubsystem = ENABLE_INTAKE ? new IntakeSubsystem(this.robotState) : null;
     if (intakeSubsystem != null) {
       // No auto-start on extend — rollers only run while B is held.
       intakeSubsystem.setOnExtendComplete(null);
     }
-
-    // Wire pose-based tracking as the turret's default command (active in PHASE_2+).
-    // While no higher-priority command holds the turret, it continuously solves bearing to target.
-    // The aim goal only enables when phase >= PHASE_2 and pose is initialized.
-    if (turretSubsystem != null) {
-      TurretAimSolver aimSolver = new TurretAimSolver();
-      TurretTargetSelector targetSelector = new TurretTargetSelector(poseEstimator, robotState);
-      TurretAimPipeline aimPipeline = new TurretAimPipeline(
-          poseEstimator,
-          driveSubsystem,
-          targetSelector,
-          aimSolver);
-      turretSubsystem.setDefaultCommand(
-          Commands.run(() -> {
-            // Phase1Fallback or QuestNav emergency: hold turret forward under PID,
-            // hood+flywheel still track distance. Bypasses trackingEnabled.
-            if (robotState.isTurretPhase1Fallback() || robotState.isQuestNavEmergencyMode()) {
-              edu.wpi.first.math.geometry.Pose2d robotPose = poseEstimator.getEstimatedPose();
-              edu.wpi.first.math.geometry.Pose2d targetPose = targetSelector.get();
-              double distanceM = (robotPose != null && targetPose != null)
-                  ? robotPose.getTranslation().getDistance(targetPose.getTranslation())
-                  : frc.robot.Constants.Turret.FALLBACK_DISTANCE_METERS;
-              turretSubsystem.holdForwardUnderPID(distanceM);
-            } else {
-              turretSubsystem.updateAimFromProvider(aimPipeline);
-            }
-            if (robotState.isFlywheelOn()) {
-              double frontRps, backRps;
-              if (turretSubsystem.isManualFlywheelOverride()) {
-                // LB/RB stepped value — use directly, ignoring aim goal
-                frontRps = turretSubsystem.getManualFlywheelFrontRps();
-                backRps  = frontRps * Constants.Turret.FLYWHEEL_BACK_RATIO;
-              } else {
-                frontRps = turretSubsystem.getAimGoalFrontRps();
-                backRps  = turretSubsystem.getAimGoalBackRps();
-                if (frontRps <= 0.0) frontRps = Constants.Turret.FLYWHEEL_WARMUP_FRONT_RPS;
-                if (backRps  <= 0.0) backRps  = Constants.Turret.FLYWHEEL_WARMUP_BACK_RPS;
-                frontRps *= Constants.Turret.FLYWHEEL_RPS_SCALE;
-                backRps  *= Constants.Turret.FLYWHEEL_RPS_SCALE;
-              }
-              turretSubsystem.setFlywheelFrontRps(frontRps);
-              turretSubsystem.setFlywheelBackRps(backRps);
-            } else {
-              turretSubsystem.setFlywheelPercent(0.0);
-            }
-          }, turretSubsystem)
-              .beforeStarting(() -> aimSolver.resetLatch())
-              .withName("TurretTrackingDefault"));
-    }
     //climberSubsystem = ENABLE_CLIMBER ? new ClimberSubsystem(this.robotState) : null;
     spindexerSubsystem = ENABLE_SPINDEXER ? new SpindexerSubsystem(this.robotState) : null;
     singulatorSubsystem = ENABLE_SINGULATOR ? new SingulatorSubsystem(this.robotState) : null;
-
-    if (!ENABLE_TURRET) {
-      SmartLogger.logConsole("Turret disabled until hardware is ready", "Startup");
-    }
     if (!ENABLE_INTAKE) {
       SmartLogger.logConsole("Intake disabled until hardware is ready", "Startup");
     }
@@ -208,27 +139,8 @@ public class RobotContainer {
 
     configurePathPlanner();
     configureDefaultCommands();
-    configureAlwaysActiveBindings(); // D-pad, RPS step — never gated by lockout
-    if (Constants.Turret.REQUIRE_TURRET_FORWARD_CONFIRM) {
-      SmartLogger.logConsole("Waiting for turret forward confirm (LB+RB) before enabling controls", "Homing");
-      // LB+RB: confirm turret is forward, then activate all controls.
-      new Trigger(() -> operatorController.getLeftBumperButton() && operatorController.getRightBumperButton())
-          .onTrue(Commands.sequence(
-            Commands.waitSeconds(0.1),
-            Commands.runOnce(() -> {
-              if (bindingsConfigured) return;
-              if (turretSubsystem != null) {
-                turretSubsystem.homeForward();
-                turretSubsystem.enableTracking();
-                //turretSubsystem.enableFire();
-              }
-              configureButtonBindings();
-              SmartLogger.logConsole("Turret confirmed forward — all controls now active", "Homing");
-            })));
-    } else {
-      if (turretSubsystem != null) turretSubsystem.enableTracking();
-      configureButtonBindings();
-    }
+    configureAlwaysActiveBindings();
+    configureButtonBindings();
     
     if (USE_TOUCHSCREEN_OPERATOR) {
       configureTouchscreenInterface();
@@ -336,61 +248,16 @@ public class RobotContainer {
               .schedule();
         }));
 
-    // D-PAD DOWN: Toggle QuestNav emergency mode (locks turret to HUBCLOSE, blocks pose-dependent commands).
+    // D-PAD DOWN: Toggle QuestNav emergency mode.
     new Trigger(() -> driverController.getPOV() == 180)
         .onTrue(Commands.runOnce(this::toggleQuestNavEmergencyMode));
-
-    // D-PAD UP: Toggle Phase1Fallback — turret holds forward under PID, drive commands still active.
-    // Use when turret tracking is broken but QuestNav/drive are fine.
-    new Trigger(() -> driverController.getPOV() == 0)
-        .onTrue(Commands.runOnce(() -> {
-          boolean nowActive = !robotState.isTurretPhase1Fallback();
-          robotState.setTurretPhase1Fallback(nowActive);
-          SmartLogger.logConsole("Phase1Fallback: " + (nowActive ? "ON" : "OFF"), "Turret");
-        }));
 
     // ========== NORMAL OPERATION BUTTONS (COMMENT OUT FOR SYSID) ==========
 
     // Reusable gate — all pose-dependent commands check this before starting.
-    Trigger poseAvailable = new Trigger(() -> !robotState.isQuestNavEmergencyMode());
-
-    // Y/B/A/X: Wall traversal (face buttons match D-pad compass layout)
-    // Y = far wall, B = right wall, A = near wall, X = left wall
-    new JoystickButton(driverController, XboxController.Button.kY.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> new WallTraversalCommand(poseEstimator, driveSubsystem, WallTraversalCommand.Wall.FAR)));
-    new JoystickButton(driverController, XboxController.Button.kB.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> new WallTraversalCommand(poseEstimator, driveSubsystem, WallTraversalCommand.Wall.RIGHT)));
-    new JoystickButton(driverController, XboxController.Button.kA.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> new WallTraversalCommand(poseEstimator, driveSubsystem, WallTraversalCommand.Wall.NEAR)));
-    new JoystickButton(driverController, XboxController.Button.kX.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> new WallTraversalCommand(poseEstimator, driveSubsystem, WallTraversalCommand.Wall.LEFT)));
-
-    // LEFT TRIGGER (alone): Smart zone sweep based on current zone
-    new Trigger(() -> driverController.getLeftTriggerAxis() > 0.5)
-        .and(new Trigger(() -> driverController.getRightTriggerAxis() <= 0.5))
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(this::createSmartSweepCommand));
-
-    // LEFT/RIGHT BUMPER: Dynamic bump traversal
-    new JoystickButton(driverController, XboxController.Button.kLeftBumper.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> createBumpTraversalCommand(DynamicBumpTraversalCommand.Side.LEFT)));
-    new JoystickButton(driverController, XboxController.Button.kRightBumper.value)
-        .and(poseAvailable)
-        .whileTrue(Commands.deferredProxy(() -> createBumpTraversalCommand(DynamicBumpTraversalCommand.Side.RIGHT)));
 
     // BOTH TRIGGERS: Dynamic heading snap — gyro only, safe in emergency mode (no gate needed).
     // Holds a field-relative heading based on zone/position while driver steers with left stick.
-    Trigger bothTriggers = new Trigger(() -> driverController.getLeftTriggerAxis() > 0.5)
-        .and(new Trigger(() -> driverController.getRightTriggerAxis() > 0.5));
-    bothTriggers.whileTrue(new SnapToHeadingDynamic(
-        poseEstimator, driveSubsystem,
-        () -> -driverController.getLeftY(),
-        () -> -driverController.getLeftX()));
 
     // ========== END NORMAL OPERATION BUTTONS ==========
 
@@ -440,152 +307,10 @@ public class RobotContainer {
             if (spindexerSubsystem  != null) spindexerSubsystem.stop();
           }));
 
-    // --- TURRET FLYWHEELS + SHOOT ---
-    Trigger flywheelReady = new Trigger(() ->
-        turretSubsystem != null && turretSubsystem.isFlywheelSpinningFast())
-        .debounce(0.1, DebounceType.kFalling);
-
-    // LT (press): toggle flywheels on/off.
-    // In SEQUENCED_SHOOTING_TESTING_MODE, also starts/stops the burst sequence (one ball every 4s).
-    new Trigger(() -> operatorController.getLeftTriggerAxis() > 0.5)
-        .onTrue(Commands.runOnce(() -> {
-          if (turretSubsystem == null) return;
-          robotState.setFlywheelOn(!robotState.isFlywheelOn());
-          if (!robotState.isFlywheelOn()) turretSubsystem.setFlywheelPercent(0.0);
-        }));
-
-    // Operator left stick press: toggle sequenced shooting mode on/off at runtime.
-    new JoystickButton(operatorController, XboxController.Button.kLeftStick.value)
-        .onTrue(Commands.runOnce(() -> {
-          boolean nowOn = !robotState.isSequencedShootingMode();
-          robotState.setSequencedShootingMode(nowOn);
-          SmartLogger.logConsole("Sequenced shooting mode: " + (nowOn ? "ON" : "OFF"), "Turret");
-        }));
-
-    // While flywheels AND sequenced mode are on: fire one ball every 4 seconds.
-    new Trigger(() -> robotState.isFlywheelOn() && robotState.isSequencedShootingMode())
-        .whileTrue(Commands.repeatingSequence(
-              Commands.waitUntil(() -> flywheelReady.getAsBoolean()),
-              Commands.runOnce(() -> {
-                // Stop first to reset state flags, then start — avoids early-return guard in spinForward
-                if (spindexerSubsystem  != null) spindexerSubsystem.stop();
-                if (singulatorSubsystem != null) singulatorSubsystem.pause();
-              }),
-              Commands.runOnce(() -> {
-                if (spindexerSubsystem  != null) spindexerSubsystem.spinForward();
-                if (singulatorSubsystem != null) singulatorSubsystem.primeAndFeed();
-              }),
-              Commands.waitSeconds(0.5),
-              Commands.runOnce(() -> {
-                if (spindexerSubsystem  != null) spindexerSubsystem.stop();
-                if (singulatorSubsystem != null) singulatorSubsystem.pause();
-              }),
-              Commands.waitSeconds(3.5)
-          ).finallyDo(() -> {
-            if (spindexerSubsystem  != null) spindexerSubsystem.stop();
-            if (singulatorSubsystem != null) singulatorSubsystem.pause();
-          }));
-
-    // LB / RB: step manual flywheel RPS down / up by FLYWHEEL_MANUAL_STEP_RPS.
-    // Back RPS is set automatically as front * FLYWHEEL_BACK_RATIO.
-    // Use during calibration to find the right speed for a new shot table entry —
-    // read Turret/ManualFlywheelFrontRps in AScope to record the value.
-    // Guard: only fire when the OTHER bumper is NOT held, so LB+RB chord still works as lockout confirm.
-    new JoystickButton(operatorController, XboxController.Button.kLeftBumper.value)
-        .and(() -> !operatorController.getRightBumperButton())
-        .onTrue(Commands.runOnce(() -> { if (turretSubsystem != null) turretSubsystem.stepManualFlywheelRps(false); }));
-    new JoystickButton(operatorController, XboxController.Button.kRightBumper.value)
-        .and(() -> !operatorController.getLeftBumperButton())
-        .onTrue(Commands.runOnce(() -> { if (turretSubsystem != null) turretSubsystem.stepManualFlywheelRps(true); }));
-
-    // RT (hold): shoot continuously. Skips feeding if right stick is pulled down (jam reverse active).
-    new Trigger(() -> operatorController.getRightTriggerAxis() > 0.5)
-        .whileTrue(Commands.run(() -> {
-          if (turretSubsystem == null) return;
-          if (operatorController.getRightY() > 0.9) return; // jam reverse takes priority
-          if (!robotState.isFlywheelOn()) robotState.setFlywheelOn(true);
-          if (!turretSubsystem.isReadyToShoot()) return;
-          boolean spindexerAllowed = intakeSubsystem == null
-              || (robotState.getIntakePosition() != RobotState.IntakePosition.EXTENDING
-              &&  robotState.getIntakePosition() != RobotState.IntakePosition.RETRACTING);
-          if (spindexerSubsystem  != null && spindexerAllowed) spindexerSubsystem.spinForward();
-          if (singulatorSubsystem != null) singulatorSubsystem.primeAndFeed();
-        }).finallyDo(() -> {
-          if (spindexerSubsystem  != null) spindexerSubsystem.stop();
-          if (singulatorSubsystem != null) singulatorSubsystem.pause();
-          robotState.setFlywheelOn(false);
-          if (turretSubsystem != null) turretSubsystem.setFlywheelPercent(0.0);
-        }));
-    // --- END TURRET FLYWHEELS + SHOOT ---
-
-    // --- TURRET ROTATION ---
-    // --- END TURRET ROTATION ---
-
-    // --- TURRET HOOD ---
-    // --- END TURRET HOOD ---
-
     // ========== END OPERATOR CONTROLLER BINDINGS ==========
-
-    // Back+Start: emergency re-home — use when turret homing is bad from startup.
-    // Manually rotate turret to forward with D-pad L/R first, then press both together.
-    new Trigger(() -> operatorController.getBackButton() && operatorController.getStartButton())
-        .onTrue(Commands.runOnce(() -> {
-          if (turretSubsystem != null) turretSubsystem.home();
-          SmartLogger.logConsole("Emergency turret re-home triggered (Back+Start) — hall sweep", "Homing");
-        }));
-
-    // ========== MODE TRIGGERS ==========
-
-    // #2: Replace onTeleopInit() logic — auto-enable tracking if turret was already homed in auto
-    RobotModeTriggers.teleop().onTrue(Commands.runOnce(() -> {
-      if (turretSubsystem != null && turretSubsystem.isHomed()
-          && !turretSubsystem.isTrackingEnabled()) {
-        turretSubsystem.enableTracking();
-        SmartLogger.logConsole("Tracking auto-enabled on teleop init (homed in auto)", "Turret");
-      }
-    }).ignoringDisable(true));
-
-    // #3: Reset flywheel state cleanly when disabled so no stale on/off state carries into next match
-    RobotModeTriggers.disabled().onTrue(Commands.runOnce(() -> {
-      robotState.setFlywheelOn(false);
-      if (turretSubsystem != null) turretSubsystem.setFlywheelPercent(0.0);
-    }).ignoringDisable(true));
   }
 
-  // Bindings that are always active regardless of lockout state.
-  // Turret/hood D-pad jog and flywheel RPS stepping go here — needed before and after lockout confirm.
   private void configureAlwaysActiveBindings() {
-    // D-pad left/right (hold): jog turret open-loop. On release, snaps to PID hold at current position.
-    // Requires turretSubsystem so it interrupts the default tracking command while held.
-    // No-op until turret is homed.
-    new Trigger(() -> operatorController.getPOV() == 270)
-        .and(() -> turretSubsystem != null && turretSubsystem.isHomed())
-        .whileTrue(Commands.runEnd(
-          () -> { turretSubsystem.setManualOverride(true); turretSubsystem.setTurretPercent(-0.04); },
-          () -> { turretSubsystem.setTurretPercent(0.0); turretSubsystem.snapTurretToCurrentPosition(); },
-          turretSubsystem));
-    new Trigger(() -> operatorController.getPOV() == 90)
-        .and(() -> turretSubsystem != null && turretSubsystem.isHomed())
-        .whileTrue(Commands.runEnd(
-          () -> { turretSubsystem.setManualOverride(true); turretSubsystem.setTurretPercent(0.04); },
-          () -> { turretSubsystem.setTurretPercent(0.0); turretSubsystem.snapTurretToCurrentPosition(); },
-          turretSubsystem));
-
-    // D-pad up/down: step hood position. Sets manualHoodOverride persistently so aim solver
-    // doesn't overwrite it. Override clears when tracking is re-enabled (e.g. LT toggle).
-    // No-op until hood is homed.
-    new Trigger(() -> operatorController.getPOV() == 0)
-        .and(() -> turretSubsystem != null && turretSubsystem.isHoodHomed())
-        .onTrue(Commands.runOnce(() -> {
-          turretSubsystem.setManualHoodOverride(true);
-          turretSubsystem.hoodStepUp();
-        }, turretSubsystem));
-    new Trigger(() -> operatorController.getPOV() == 180)
-        .and(() -> turretSubsystem != null && turretSubsystem.isHoodHomed())
-        .onTrue(Commands.runOnce(() -> {
-          turretSubsystem.setManualHoodOverride(true);
-          turretSubsystem.hoodStepDown();
-        }, turretSubsystem));
   }
 
   // HTML touchscreen interface
@@ -600,42 +325,12 @@ public class RobotContainer {
     return (selectedAuto != null) ? wrapPathWithLogging(selectedAuto) : selectedAuto;
   }
 
-  // Called at the start of teleop. If auto already ran and enabled tracking, the turret
-  // forward lockout is automatically cleared so operator controls are immediately active.
-  // This covers real matches where auto runs before teleop — no button confirm needed.
-  // In practice/pit mode (no auto run), the LB+RB confirm is still required.
   public void onTeleopInit() {
-    // Reset roller flag to OFF so first B press in teleop always turns rollers ON cleanly.
-    // Avoids the case where auto left the flag true and B immediately turns it off.
-    // (no-op now — rollers are purely hold-to-run via B button)
-
-    if (!Constants.Turret.REQUIRE_TURRET_FORWARD_CONFIRM) return;
-    if (bindingsConfigured) return;
-    if (turretSubsystem != null && turretSubsystem.isTrackingEnabled()) {
-      // Auto already ran and called homeForward() — encoder is valid, don't reseed it.
-      // Just unlock the controls.
-      configureButtonBindings();
-      SmartLogger.logConsole("Teleop: auto already ran — controls now active", "Homing");
-    }
   }
 
-  // Toggles QuestNav emergency mode on/off.
-  // ON: locks turret to HUBCLOSE preset, blocks all pose-dependent drive commands.
-  // Operator still controls flywheels and shooting manually via LT/RT as normal.
-  // OFF: clears the flag — pose-dependent commands and auto-tracking resume.
   public void toggleQuestNavEmergencyMode() {
     boolean nowActive = !robotState.isQuestNavEmergencyMode();
     robotState.setQuestNavEmergencyMode(nowActive);
-    if (nowActive) {
-      // Disable tracking so the default command stops overwriting the emergency setpoints every loop.
-      if (turretSubsystem != null) {
-        turretSubsystem.disableTracking();
-        turretSubsystem.activateEmergencyHubClose();
-      }
-    } else {
-      // Re-enable tracking when emergency mode is cleared.
-      if (turretSubsystem != null) turretSubsystem.enableTracking();
-    }
   }
 
   // Reset robot position
@@ -820,41 +515,6 @@ public class RobotContainer {
     SmartLogger.logReplay("Auto/QuestRotErrDeg", rotErr);
 
     return posErr > AUTO_SEED_POS_TOL_METERS || rotErr > AUTO_SEED_ROT_TOL_DEG;
-  }
-
-  // Picks the sweep command based on the robot's current X position.
-  // Pose estimator is always Blue-origin, so we mirror X for Red before comparing.
-  // This matches the same zone-detection pattern used by DynamicBumpTraversalCommand.
-  private Command createSmartSweepCommand() {
-    boolean isRed = isRedAlliance();
-    double rawX = poseEstimator.getEstimatedPose().getX();
-    double robotX = isRed ? (Constants.Field.FIELD_LENGTH_METERS - rawX) : rawX;
-    boolean inAllianceZone  = robotX < Constants.Field.ALLIANCE_ZONE_LENGTH_METERS;
-    boolean inOpposingZone  = robotX > (Constants.Field.FIELD_LENGTH_METERS - Constants.Field.ALLIANCE_ZONE_LENGTH_METERS);
-
-    if (inAllianceZone) {
-      SmartLogger.logConsole("->SWEEP: Alliance zone selected (x=" + String.format("%.2f", robotX) + ")", "Sweep");
-      return new AllianceZoneSweepSimplifiedCommand(poseEstimator, driveSubsystem);
-    }
-    if (inOpposingZone) {
-      SmartLogger.logConsole("->SWEEP: Opposing zone selected (x=" + String.format("%.2f", robotX) + ")", "Sweep");
-      return new OpposingAllianceZoneSweepSimplifiedCommand(poseEstimator, driveSubsystem);
-    }
-    SmartLogger.logConsole("->SWEEP: Neutral zone selected (x=" + String.format("%.2f", robotX) + ")", "Sweep");
-    return new NeutralZoneSweepSimplifiedCommand(poseEstimator, driveSubsystem);
-  }
-
-  // modifier=false means no modifier button is currently pressed.
-  // Future: pass a button trigger here to enable the modified traversal variant.
-  private Command createBumpTraversalCommand(DynamicBumpTraversalCommand.Side side) {
-    boolean modifier = false; // no modifier active
-    return new DynamicBumpTraversalCommand(
-        poseEstimator,
-        driveSubsystem,
-        side,
-        modifier,
-        DynamicBumpTraversalCommand.createPrototypeConfig(),
-        intakeSubsystem);
   }
 
   private Pose2d getRebuiltRightCornerPose() {

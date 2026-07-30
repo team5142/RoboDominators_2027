@@ -48,7 +48,7 @@ public class LEDSubsystem extends SubsystemBase {
   }
 
   // Returns the Blinkin value for the current game state.
-  // Priority: disabled -> auto -> endgame -> turret-ready -> hub-last-5s -> hub-active -> last-5s -> teleop default
+  // Priority: disabled -> auto -> endgame -> hub-last-5s -> hub-active -> last-5s -> teleop default
   private double choosePattern() {
     if (!DriverStation.isEnabled()) {
       return Pattern.LAVA; // PWM is off during disabled; this is a no-op but keeps state clean
@@ -72,10 +72,6 @@ public class LEDSubsystem extends SubsystemBase {
       if (secsLeft <= 5.0) {
         // Hub window closing - urgent blink blue/white
         return blinkOn() ? Pattern.BLUE : Pattern.WHITE;
-      }
-      // Hub is active and flywheel is commanded - ready to shoot
-      if (robotState.getTurretFlywheelPercent() > 0.05) {
-        return blinkOn() ? Pattern.GREEN : Pattern.BLUE;
       }
       return Pattern.BLUE;
     }

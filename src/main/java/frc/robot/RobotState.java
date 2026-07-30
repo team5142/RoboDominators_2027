@@ -22,7 +22,6 @@ public class RobotState {
   private boolean operatorDriveLockout = false;
   // When true: QuestNav is unreliable — pose-dependent commands are blocked, turret uses fixed preset.
   private boolean questNavEmergencyMode = false;
-  private boolean turretPhase1Fallback  = false;
   // When true: auto shoot mode active — flywheels, singulator, and spindexer run automatically.
   private boolean autoShootMode = false;
   // When true: auto shoot is temporarily paused — ball stays staged, shooting is blocked.
@@ -32,9 +31,7 @@ public class RobotState {
   // Deadzone suppression: target is behind the robot in the turret blind spot (set by TurretSubsystem).
   private boolean deadzoneSuppressed = false;
   // Flywheel warm-up state — readable by auto commands and the default turret command.
-  private boolean flywheelOn = false;
   // Sequenced shooting mode — fires one ball every 4s automatically while flywheels are on.
-  private boolean sequencedShootingMode = false;
   private DriverStation.Alliance alliance = DriverStation.Alliance.Blue;
 
   // Match phase and hub active tracking
@@ -58,11 +55,6 @@ public class RobotState {
   private NavigationPhase navigationPhase = NavigationPhase.NONE;
 
   // Mechanism states
-  public enum TurretState {
-    IDLE,
-    ACTIVE
-  }
-
   // Position of the intake arm (extension axis)
   public enum IntakePosition {
     HOMING,         // actively moving up to find limit switches on first enable
@@ -108,7 +100,6 @@ public class RobotState {
     REVERSING  // reverse to clear a jam
   }
 
-  private TurretState turretState = TurretState.IDLE;
   // Default to RETRACTED so extend/retract work when homing is disabled (ENABLE_INTAKE_HOMING = false).
   private IntakePosition intakePosition = IntakePosition.RETRACTED;
   private ShootingZone shootingZone = ShootingZone.ALLIANCE;
@@ -127,15 +118,6 @@ public class RobotState {
   private int ballsPassed       = 0;
   private boolean intakeLimitSwitch = false;
 
-  private boolean turretHoodBeamBreakRaw = false;
-  private boolean turretHallCCWRaw = false;
-
-  private double turretHoodAbsolutePositionRotations = 0.0;
-  private double turretRotationAbsolutePositionRotations = 0.0;
-
-  private double turretFlywheelPercent = 0.0;
-  private double turretHoodPercent = 0.0;
-  private double turretRotationPercent = 0.0;
   private double intakePercent = 0.0;
   private double intakeExtensionPercent = 0.0;
   private double climberPullPercent = 0.0;
@@ -208,19 +190,6 @@ public class RobotState {
     SmartLogger.logConsole("QuestNav emergency mode " + (active ? "ACTIVE — pose commands blocked" : "cleared"), "Emergency");
   }
 
-  public boolean isTurretPhase1Fallback() { return turretPhase1Fallback; }
-  public void setTurretPhase1Fallback(boolean active) {
-    turretPhase1Fallback = active;
-    SmartLogger.logConsole("Turret Phase1 fallback " + (active ? "ACTIVE — turret locked forward" : "cleared"), "Emergency");
-    SmartLogger.logReplay("RobotState/TurretPhase1Fallback", active);
-  }
-
-  public boolean isFlywheelOn() { return flywheelOn; }
-  public void setFlywheelOn(boolean on) { flywheelOn = on; }
-
-  public boolean isSequencedShootingMode() { return sequencedShootingMode; }
-  public void setSequencedShootingMode(boolean on) { sequencedShootingMode = on; }
-
   public boolean isAutoShootMode() { return autoShootMode; }
   public void setAutoShootMode(boolean active) {
     autoShootMode = active;
@@ -264,16 +233,6 @@ public class RobotState {
     this.operatorDriveLockout = operatorDriveLockout;
     SmartLogger.logReplay("RobotState/OperatorDriveLockout", operatorDriveLockout);
   }
-
-  public void setTurretState(TurretState turretState) {
-    if (this.turretState == turretState) {
-      return;
-    }
-    this.turretState = turretState;
-    SmartLogger.logReplay("RobotState/TurretState", turretState.toString());
-  }
-
-  public TurretState getTurretState() { return turretState; }
 
   public void setIntakePosition(IntakePosition pos) {
     if (intakePosition == pos) return;
@@ -390,64 +349,6 @@ public class RobotState {
   }
 
   public ClimberState getClimberState() { return climberState; }
-
-  public void setTurretHoodLimitSwitchRaw(boolean limitRaw) {
-    if (turretHoodBeamBreakRaw == limitRaw) return;
-    turretHoodBeamBreakRaw = limitRaw;
-    SmartLogger.logReplay("RobotState/Turret/HoodLimitSwitchRaw", limitRaw);
-  }
-
-  public boolean getTurretHoodLimitSwitchRaw() { return turretHoodBeamBreakRaw; }
-
-  public void setTurretHallCCWRaw(boolean hallRaw) {
-    if (turretHallCCWRaw == hallRaw) {
-      return;
-    }
-    turretHallCCWRaw = hallRaw;
-    SmartLogger.logReplay("RobotState/Turret/HallCCWRaw", hallRaw);
-  }
-
-  public boolean getTurretHallCCWRaw() { return turretHallCCWRaw; }
-
-  public void setTurretHoodMotorPositionRotations(double rotations) {
-    if (Math.abs(turretHoodAbsolutePositionRotations - rotations) < 0.0001) return;
-    turretHoodAbsolutePositionRotations = rotations;
-    SmartLogger.logReplay("RobotState/Turret/HoodMotorRot", rotations);
-  }
-
-  public double getTurretHoodMotorPositionRotations() { return turretHoodAbsolutePositionRotations; }
-
-  public void setTurretRotationAbsolutePositionRotations(double rotations) {
-    if (Math.abs(turretRotationAbsolutePositionRotations - rotations) < 0.0001) return;
-    turretRotationAbsolutePositionRotations = rotations;
-    SmartLogger.logReplay("RobotState/Turret/RotationAbsRot", rotations);
-  }
-
-  public double getTurretRotationAbsolutePositionRotations() { return turretRotationAbsolutePositionRotations; }
-
-  public void setTurretFlywheelPercent(double percent) {
-    if (Math.abs(turretFlywheelPercent - percent) < 0.001) return;
-    turretFlywheelPercent = percent;
-    SmartLogger.logReplay("RobotState/Turret/FlywheelPercent", percent);
-  }
-
-  public double getTurretFlywheelPercent() { return turretFlywheelPercent; }
-
-  public void setTurretHoodPercent(double percent) {
-    if (Math.abs(turretHoodPercent - percent) < 0.001) return;
-    turretHoodPercent = percent;
-    SmartLogger.logReplay("RobotState/Turret/HoodPercent", percent);
-  }
-
-  public double getTurretHoodPercent() { return turretHoodPercent; }
-
-  public void setTurretRotationPercent(double percent) {
-    if (Math.abs(turretRotationPercent - percent) < 0.001) return;
-    turretRotationPercent = percent;
-    SmartLogger.logReplay("RobotState/Turret/RotationPercent", percent);
-  }
-
-  public double getTurretRotationPercent() { return turretRotationPercent; }
 
   public void setIntakePercent(double percent) {
     if (Math.abs(intakePercent - percent) < 0.001) return;
