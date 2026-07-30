@@ -50,7 +50,7 @@ public class Robot extends LoggedRobot {
     CanBridge.runTCP(); // allows GrappleHook to connect for LaserCAN tuning
     com.ctre.phoenix6.SignalLogger.enableAutoLogging(false); // .hoot files not needed — AKit .wpilog is our log format
     StatusLogger.disableAutoLogging();
-    String projectName = "RoboDominators_2026";
+    String projectName = "RoboDominators_2027";
     String teamNumber = "5142";
     String robotName = "Osprey";
     Logger.recordMetadata("ProjectName", projectName);
@@ -265,19 +265,6 @@ public class Robot extends LoggedRobot {
     
     Logger.recordOutput("Robot/Mode", "AUTO");
     SmartLogger.logConsole(">>> AUTONOMOUS MODE STARTED <<<", "Auto Start", 15);
-
-    // Seed the turret encoder and enable tracking for every auto.
-    // Turret must be physically pointing forward before any auto runs.
-    // Also reset fire/flywheel/feed state in case a previous auto was aborted mid-run.
-    if (robotContainer.turretSubsystem != null) {
-      robotContainer.turretSubsystem.homeForward();
-      robotContainer.turretSubsystem.enableTracking();
-      robotContainer.turretSubsystem.disableFire();
-      robotContainer.turretSubsystem.setFlywheelPercent(0.0);
-    }
-    if (robotContainer.spindexerSubsystem  != null) robotContainer.spindexerSubsystem.stop();
-    if (robotContainer.singulatorSubsystem != null) robotContainer.singulatorSubsystem.pause();
-    robotState.setFlywheelOn(false);
 
     autonomousCommand = robotContainer.getAutonomousCommand();
 

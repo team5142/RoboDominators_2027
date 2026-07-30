@@ -171,28 +171,6 @@ public class PoseInitializer {
   public Pose2d getStartPoseForAutoName(String autoName, boolean isRed) {
     if (autoName == null || autoName.isEmpty()) return null;
 
-    // Java autos (no .auto file) — return their known starting pose, flipped for Red if needed.
-    // Blue-side poses are defined in Constants; the isRed flag handles Red automatically.
-    Pose2d javaAutoPose = null;
-    if (autoName.equals("ShootInPlaceRight"))          javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_RIGHT;
-    if (autoName.equals("ShootInPlaceRightAccurate"))  javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_RIGHT_ACCURATE;
-    if (autoName.equals("ShootInPlaceLeft"))           javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_LEFT;
-    if (autoName.equals("ShootInPlaceRightBotRotate")) javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_RIGHT;
-    if (autoName.equals("ShootInPlaceLeftBotRotate"))  javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_LEFT;
-    if (autoName.equals("DoNothingCenter"))    javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_CENTER;
-    if (autoName.equals("CenterMoveToShoot"))  javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_CENTER;
-    if (autoName.equals("DoNothingLeft"))      javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_LEFT;
-    if (autoName.equals("DoNothingRight"))     javaAutoPose = Constants.StartingPositions.SHOOT_IN_PLACE_START_RIGHT;
-    if (javaAutoPose != null) {
-      if (isRed) {
-        javaAutoPose = new Pose2d(
-            FIELD_LENGTH_METERS - javaAutoPose.getX(),
-            FIELD_WIDTH_METERS  - javaAutoPose.getY(),
-            Rotation2d.fromDegrees(javaAutoPose.getRotation().getDegrees() + 180.0));
-      }
-      return javaAutoPose;
-    }
-
     // Return cached result if same auto and same alliance is requested again (avoids file I/O every loop)
     String cacheKey = autoName + (isRed ? "_red" : "_blue");
     if (cacheKey.equals(cachedAutoName)) return cachedAutoStartPose;

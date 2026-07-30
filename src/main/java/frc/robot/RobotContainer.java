@@ -24,16 +24,6 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
-import frc.robot.commands.auto.AutoCommands;
-import frc.robot.commands.auto.CenterMoveToShootAuto;
-import frc.robot.commands.auto.DoNothingCenterAuto;
-import frc.robot.commands.auto.DoNothingLeftAuto;
-import frc.robot.commands.auto.DoNothingRightAuto;
-import frc.robot.commands.auto.ShootInPlaceLeftAuto;
-import frc.robot.commands.auto.ShootInPlaceLeftBotRotateAuto;
-import frc.robot.commands.auto.ShootInPlaceRightAuto;
-import frc.robot.commands.auto.ShootInPlaceRightAccurateAuto;
-import frc.robot.commands.auto.ShootInPlaceRightBotRotateAuto;
 import frc.robot.commands.drive.DriveWithJoysticks;
 import frc.robot.commands.drive.DynamicBumpTraversalCommand;
 import frc.robot.commands.drive.AllianceZoneSweepSimplifiedCommand;
@@ -217,7 +207,6 @@ public class RobotContainer {
     SmartDriveToPosition.configure(poseEstimator, robotState, driveSubsystem, questNav); // Static config for SmartDrive commands
 
     configurePathPlanner();
-    AutoCommands.register(intakeSubsystem, turretSubsystem, spindexerSubsystem, singulatorSubsystem, climberSubsystem, robotState);
     configureDefaultCommands();
     configureAlwaysActiveBindings(); // D-pad, RPS step — never gated by lockout
     if (Constants.Turret.REQUIRE_TURRET_FORWARD_CONFIRM) {
@@ -246,15 +235,7 @@ public class RobotContainer {
     }
     
     autoChooser = AutoBuilder.buildAutoChooser(""); // Scans deploy/pathplanner/autos/ for named autos
-    autoChooser.setDefaultOption("ShootInPlaceRight", new ShootInPlaceRightAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
-    autoChooser.addOption("ShootInPlaceRightAccurate", new ShootInPlaceRightAccurateAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
-    autoChooser.addOption("ShootInPlaceLeft",  new ShootInPlaceLeftAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
-    autoChooser.addOption("DoNothingCenter",   new DoNothingCenterAuto(poseEstimator, driveSubsystem));
-    autoChooser.addOption("DoNothingLeft",     new DoNothingLeftAuto(poseEstimator, driveSubsystem));
-    autoChooser.addOption("DoNothingRight",    new DoNothingRightAuto(poseEstimator, driveSubsystem));
-    autoChooser.addOption("ShootInPlaceRightBotRotate", new ShootInPlaceRightBotRotateAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
-    autoChooser.addOption("ShootInPlaceLeftBotRotate",  new ShootInPlaceLeftBotRotateAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
-    autoChooser.addOption("CenterMoveToShoot",          new CenterMoveToShootAuto(turretSubsystem, spindexerSubsystem, singulatorSubsystem, intakeSubsystem, poseEstimator, driveSubsystem, robotState));
+    autoChooser.setDefaultOption("Do Nothing", Commands.none().withName("Do Nothing"));
     SmartDashboard.putData("Auto Chooser", autoChooser); // Sends chooser widget to dashboard
     robotState.setSysIdMode(SYSID_MODE);
     poseEstimator.setAutoChooser(autoChooser); // Lets pose estimator read auto start poses
