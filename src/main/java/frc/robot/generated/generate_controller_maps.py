@@ -71,16 +71,6 @@ DRIVER_LABELS = [
 ]
 
 OPERATOR_LABELS = [
-    ("LT",        "LT: Toggle flywheels on/off",                          "left"),
-    ("RT",        "RT (hold): SHOOT\n(spindexer + singulator)",            "right"),
-    ("DPAD_LEFT",  "D-pad LEFT (hold): Rotate turret CCW",                 "left"),
-    ("DPAD_RIGHT", "D-pad RIGHT (hold): Rotate turret CW",                 "right"),
-    ("DPAD_UP",    "D-pad UP: Hood step up",                               "left"),
-    ("DPAD_DOWN",  "D-pad DOWN: Hood step down",                           "left"),
-    ("BACK",      "BACK+START: Re-home turret\n(hall sweep only)",              "left"),
-    ("START",     "(see BACK+START)",                                      "right"),
-    ("LB",        "LB+RB: Confirm turret forward\n(enables all controls)", "left"),
-    ("RB",        "(see LB+RB)",                                           "right"),
 ]
 
 TITLE_DRIVER   = "RoboDominators 5142 - DRIVER Controller"

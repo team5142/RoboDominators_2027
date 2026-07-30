@@ -37,9 +37,6 @@ public class RobotContainer {
   private static final boolean ENABLE_CONSOLE_LOGGING = !COMPETITION_MODE;
   private static final boolean USE_TOUCHSCREEN_OPERATOR = false;
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
-  private static final boolean ENABLE_CLIMBER = false;
-  private static final boolean ENABLE_SPINDEXER = true;
-  private static final boolean ENABLE_SINGULATOR = true;
   private static final double AUTO_SEED_POS_TOL_METERS = 0.20;
   private static final double AUTO_SEED_ROT_TOL_DEG = 10.0;
 
@@ -64,9 +61,6 @@ public class RobotContainer {
   final PoseEstimatorSubsystem poseEstimator;
   final TagVisionSubsystem tagVisionSubsystem;
   public final LEDSubsystem ledSubsystem;
-  ClimberSubsystem climberSubsystem;
-  SpindexerSubsystem spindexerSubsystem;
-  SingulatorSubsystem singulatorSubsystem;
 
   // Autonomous chooser shown on dashboard; selection drives pose preview and auto init
   private final SendableChooser<Command> autoChooser;
@@ -104,18 +98,6 @@ public class RobotContainer {
     poseEstimator = new PoseEstimatorSubsystem(driveSubsystem, this.robotState, questNav);
     tagVisionSubsystem = new TagVisionSubsystem(poseEstimator);
     ledSubsystem = new LEDSubsystem(this.robotState);
-    //climberSubsystem = ENABLE_CLIMBER ? new ClimberSubsystem(this.robotState) : null;
-    spindexerSubsystem = ENABLE_SPINDEXER ? new SpindexerSubsystem(this.robotState) : null;
-    singulatorSubsystem = ENABLE_SINGULATOR ? new SingulatorSubsystem(this.robotState) : null;
-    if (!ENABLE_CLIMBER) {
-      SmartLogger.logConsole("Climber disabled until hardware is ready", "Startup");
-    }
-    if (!ENABLE_SPINDEXER) {
-      SmartLogger.logConsole("Spindexer disabled until hardware is ready", "Startup");
-    }
-    if (!ENABLE_SINGULATOR) {
-      SmartLogger.logConsole("Singulator disabled until hardware is ready", "Startup");
-    }
 
     updateAllianceFromDriverStation();
     this.robotState.setAlliance(cachedAlliance); // Must be set before PathPlanner config
@@ -251,20 +233,6 @@ public class RobotContainer {
 
     // ========== END NORMAL OPERATION BUTTONS ==========
 
-    // ========== OPERATOR CONTROLLER BINDINGS ==========
-    // Right stick pulled down (Y > 0.9): reverse singulator and spindexer to clear a jam. Stops on release.
-    new Trigger(() -> operatorController.getRightY() > 0.9)
-        .whileTrue(Commands.startEnd(
-          () -> {
-            if (singulatorSubsystem != null) singulatorSubsystem.spinReverse();
-            if (spindexerSubsystem  != null) spindexerSubsystem.spinReverse();
-          },
-          () -> {
-            if (singulatorSubsystem != null) singulatorSubsystem.pause();
-            if (spindexerSubsystem  != null) spindexerSubsystem.stop();
-          }));
-
-    // ========== END OPERATOR CONTROLLER BINDINGS ==========
   }
 
   private void configureAlwaysActiveBindings() {

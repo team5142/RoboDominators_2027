@@ -233,12 +233,6 @@ public class Robot extends LoggedRobot {
       robotState.setMode(RobotState.Mode.DISABLED);
     }
 
-    if (robotContainer != null) {
-      if (robotContainer.climberSubsystem    != null) robotContainer.climberSubsystem.stopAll();
-      if (robotContainer.spindexerSubsystem  != null) robotContainer.spindexerSubsystem.stopAll();
-      if (robotContainer.singulatorSubsystem != null) robotContainer.singulatorSubsystem.stopAll();
-    }
-
     Logger.recordOutput("Robot/Mode", "DISABLED");
     SmartLogger.logConsole("Robot DISABLED");
   }
@@ -260,7 +254,6 @@ public class Robot extends LoggedRobot {
     matchActive = true;
     robotState.setEnabled(true);
     robotState.setMode(RobotState.Mode.ENABLED_AUTO);
-    robotState.resetBallCounters();
     
     Logger.recordOutput("Robot/Mode", "AUTO");
     SmartLogger.logConsole(">>> AUTONOMOUS MODE STARTED <<<", "Auto Start", 15);

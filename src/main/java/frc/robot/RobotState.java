@@ -1,50 +1,34 @@
 package frc.robot;
 
-import frc.robot.util.MatchPhaseTracker;
-import frc.robot.util.SmartLogger;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.util.MatchPhaseTracker;
+import frc.robot.util.SmartLogger;
 
 // Global robot state tracker - coordinates subsystem states and robot intents
-// Single source of truth for robot mode, navigation phase, and mechanism states (2026+)
+// Single source of truth for robot mode, navigation phase, and robot intents
 public class RobotState {
-  
+
   // Game state (FMS-driven)
   public enum Mode {
-    DISABLED, 
-    ENABLED_TELEOP, 
-    ENABLED_AUTO, 
+    DISABLED,
+    ENABLED_TELEOP,
+    ENABLED_AUTO,
     TEST
   }
+
   private Mode mode = Mode.DISABLED;
   private boolean enabled = false;
   private boolean sysIdMode = false;
   private boolean operatorDriveLockout = false;
-  // When true: QuestNav is unreliable — pose-dependent commands are blocked, turret uses fixed preset.
+  // When true: QuestNav is unreliable and pose-dependent commands are blocked.
   private boolean questNavEmergencyMode = false;
-  // When true: auto shoot mode active — flywheels, singulator, and spindexer run automatically.
+  // When true: auto shoot mode is active and ball-handling runs automatically.
   private boolean autoShootMode = false;
-  // When true: auto shoot is temporarily paused — ball stays staged, shooting is blocked.
-  private boolean autoShootPaused = false;
-  // Field zone suppression: bump, net, or tower shadow (set by TurretTargetSelector).
-  private boolean fieldZoneSuppressed = false;
-  // Deadzone suppression: target is behind the robot in the turret blind spot (set by TurretSubsystem).
-  private boolean deadzoneSuppressed = false;
-  // Flywheel warm-up state — readable by auto commands and the default turret command.
-  // Sequenced shooting mode — fires one ball every 4s automatically while flywheels are on.
   private DriverStation.Alliance alliance = DriverStation.Alliance.Blue;
 
   // Match phase and hub active tracking
   private final MatchPhaseTracker matchPhaseTracker = new MatchPhaseTracker();
-  
-  // Robot intent (high-level actions)
-  public enum RobotIntent {
-    IDLE, 
-    NAVIGATING
-    // TODO 2026: Add INTAKE_FLOOR, SCORE_HIGH, CLIMB, etc.
-  }
-  private RobotIntent currentIntent = RobotIntent.IDLE;
-  
   // Navigation state (active - used by SmartDrive)
   public enum NavigationPhase {
     NONE,           // Not navigating
@@ -52,64 +36,20 @@ public class RobotState {
     PRECISION_PATH, // AutoPilot precision
     LOCKED          // Navigation complete, wheels locked
   }
+
   private NavigationPhase navigationPhase = NavigationPhase.NONE;
 
-  public enum ClimberState {
-    IDLE,
-    ACTIVE
-  }
-
-  // Which field zone the robot is currently in — set by TurretTargetSelector each loop.
   public enum ShootingZone {
-    ALLIANCE,   // our side — shoot into hub when hub is active
-    NEUTRAL,    // mid-field — pass back during first 15s of opponent period
-    OPPONENT    // opponent side — never shoot
-  }
-
-  // Spin state of the spindexer cone
-  public enum SpindexerState {
-    STOPPED,
-    FORWARD,  // feeding balls toward singulator groove
-    REVERSE   // agitator/unjam pulse
-  }
-
-  // State of the singulator feed motor
-  public enum SingulatorState {
-    PAUSED,    // holding — do not feed
-    FEEDING,   // running toward flywheels
-    REVERSING  // reverse to clear a jam
+    ALLIANCE,   // our side - shoot into hub when hub is active
+    NEUTRAL,    // mid-field - pass back during first 15s of opponent period
+    OPPONENT    // opponent side - never shoot
   }
 
   private ShootingZone shootingZone = ShootingZone.ALLIANCE;
-  private ClimberState climberState = ClimberState.IDLE;
-  private SpindexerState spindexerState = SpindexerState.STOPPED;
-  private SingulatorState singulatorState = SingulatorState.PAUSED;
-  private boolean singulatorBeamBreak = false;
-  private boolean deadZoneBeamBreak = false;
-  private int ballsFedCount = 0;
 
-  // Segmented ball counters — reset on autonomousInit or via resetBallCounters()
-  private int ballsShotAuto     = 0;
-  private int ballsShotTeleop   = 0;
-  private int ballsShotEndgame  = 0;
-  private int ballsPassed       = 0;
-  private double climberPullPercent = 0.0;
-  private double climberRotationPercent = 0.0;
-  
   // Field position
   private Pose2d robotPose = new Pose2d();
-  
-  // PUBLIC API
-  public void requestIntent(RobotIntent intent) {
-    if (currentIntent == intent) {
-      return;
-    }
-    currentIntent = intent;
-    SmartLogger.logReplay("RobotState/Intent", intent.toString());
-  }
-  
-  public RobotIntent getCurrentIntent() { return currentIntent; }
-  
+
   public void setNavigationPhase(NavigationPhase navPhase) {
     if (this.navigationPhase == navPhase) {
       return;
@@ -117,12 +57,12 @@ public class RobotState {
     this.navigationPhase = navPhase;
     SmartLogger.logReplay("RobotState/NavigationPhase", navPhase.toString());
   }
-  
+
   public NavigationPhase getNavigationPhase() { return navigationPhase; }
-  
+
   public void setRobotPose(Pose2d pose) { this.robotPose = pose; }
   public Pose2d getRobotPose() { return robotPose; }
-  
+
   public void setMode(Mode mode) {
     if (this.mode == mode) {
       return;
@@ -130,7 +70,7 @@ public class RobotState {
     this.mode = mode;
     SmartLogger.logReplay("RobotState/Mode", mode.toString());
   }
-  
+
   public Mode getMode() { return mode; }
 
   public void setAlliance(DriverStation.Alliance alliance) {
@@ -142,57 +82,45 @@ public class RobotState {
   }
 
   public DriverStation.Alliance getAlliance() { return alliance; }
-  
+
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
     SmartLogger.logReplay("RobotState/Enabled", enabled);
   }
-  
+
   public boolean isEnabled() { return enabled; }
-  
+
   public void setSysIdMode(boolean sysIdMode) {
     this.sysIdMode = sysIdMode;
-    SmartLogger.logConsole("SysId mode " + (sysIdMode ? "enabled - vision updates disabled" : "disabled"), "SysId Mode");
+    SmartLogger.logConsole(
+        "SysId mode " + (sysIdMode ? "enabled - vision updates disabled" : "disabled"),
+        "SysId Mode");
   }
-  
+
   public boolean isSysIdMode() { return sysIdMode; }
 
   public boolean isQuestNavEmergencyMode() { return questNavEmergencyMode; }
+
   public void setQuestNavEmergencyMode(boolean active) {
     questNavEmergencyMode = active;
-    SmartLogger.logConsole("QuestNav emergency mode " + (active ? "ACTIVE — pose commands blocked" : "cleared"), "Emergency");
+    SmartLogger.logConsole(
+        "QuestNav emergency mode " + (active ? "ACTIVE - pose commands blocked" : "cleared"),
+        "Emergency");
   }
 
   public boolean isAutoShootMode() { return autoShootMode; }
+
   public void setAutoShootMode(boolean active) {
     autoShootMode = active;
     SmartLogger.logConsole("Auto shoot mode " + (active ? "ACTIVE" : "OFF"), "AutoShoot");
   }
 
-  public boolean isAutoShootPaused() { return autoShootPaused; }
-  public void setAutoShootPaused(boolean paused) { autoShootPaused = paused; }
-
-  public boolean isShotSuppressed() { return fieldZoneSuppressed || deadzoneSuppressed; }
-
   public ShootingZone getShootingZone() { return shootingZone; }
+
   public void setShootingZone(ShootingZone zone) {
     if (shootingZone == zone) return;
     shootingZone = zone;
     SmartLogger.logReplay("RobotState/ShootingZone", zone.toString());
-  }
-
-  public void setFieldZoneSuppressed(boolean value) {
-    if (fieldZoneSuppressed == value) return;
-    fieldZoneSuppressed = value;
-    SmartLogger.logReplay("RobotState/FieldZoneSuppressed", value);
-    SmartLogger.logReplay("RobotState/ShotSuppressed", isShotSuppressed());
-  }
-
-  public void setDeadzoneSuppressed(boolean value) {
-    if (deadzoneSuppressed == value) return;
-    deadzoneSuppressed = value;
-    SmartLogger.logReplay("RobotState/DeadzoneSuppressed", value);
-    SmartLogger.logReplay("RobotState/ShotSuppressed", isShotSuppressed());
   }
 
   public boolean isOperatorDriveLockout() {
@@ -206,116 +134,6 @@ public class RobotState {
     this.operatorDriveLockout = operatorDriveLockout;
     SmartLogger.logReplay("RobotState/OperatorDriveLockout", operatorDriveLockout);
   }
-
-
-  public void setSpindexerState(SpindexerState state) {
-    if (this.spindexerState == state) return;
-    this.spindexerState = state;
-    SmartLogger.logReplay("RobotState/SpindexerState", state.toString());
-  }
-  public SpindexerState getSpindexerState() { return spindexerState; }
-
-  public void setSingulatorState(SingulatorState state) {
-    if (this.singulatorState == state) return;
-    this.singulatorState = state;
-    SmartLogger.logReplay("RobotState/SingulatorState", state.toString());
-  }
-  public SingulatorState getSingulatorState() { return singulatorState; }
-
-  // True when a ball is present at the singulator beam break sensor
-  public void setSingulatorBeamBreak(boolean value) {
-    if (this.singulatorBeamBreak == value) return;
-    this.singulatorBeamBreak = value;
-    SmartLogger.logReplay("RobotState/SingulatorBeamBreak", value);
-  }
-  public boolean getSingulatorBeamBreak() { return singulatorBeamBreak; }
-
-  // True when a ball is stuck in the dead zone above the singulator, below the flywheels
-  public void setDeadZoneBeamBreak(boolean value) {
-    if (this.deadZoneBeamBreak == value) return;
-    this.deadZoneBeamBreak = value;
-    SmartLogger.logReplay("RobotState/DeadZoneBeamBreak", value);
-  }
-  public boolean getDeadZoneBeamBreak() { return deadZoneBeamBreak; }
-
-  // Incremented when a ball exits toward the flywheels; decremented when one is pulled back.
-  // Routes to the correct segment based on current zone and phase.
-  public void incrementBallsFed() {
-    ballsFedCount++;
-    SmartLogger.logReplay("RobotState/BallsFedCount", ballsFedCount);
-    if (shootingZone == ShootingZone.NEUTRAL) {
-      ballsPassed++;
-    } else {
-      MatchPhaseTracker.GamePhase phase = getGamePhase();
-      if (phase == MatchPhaseTracker.GamePhase.AUTO) {
-        ballsShotAuto++;
-      } else if (phase == MatchPhaseTracker.GamePhase.END_GAME) {
-        ballsShotEndgame++;
-      } else {
-        ballsShotTeleop++;
-      }
-    }
-  }
-
-  public void decrementBallsFed() {
-    if (ballsFedCount > 0) ballsFedCount--;
-    SmartLogger.logReplay("RobotState/BallsFedCount", ballsFedCount);
-    if (shootingZone == ShootingZone.NEUTRAL) {
-      if (ballsPassed > 0) ballsPassed--;
-    } else {
-      MatchPhaseTracker.GamePhase phase = getGamePhase();
-      if (phase == MatchPhaseTracker.GamePhase.AUTO) {
-        if (ballsShotAuto > 0) ballsShotAuto--;
-      } else if (phase == MatchPhaseTracker.GamePhase.END_GAME) {
-        if (ballsShotEndgame > 0) ballsShotEndgame--;
-      } else {
-        if (ballsShotTeleop > 0) ballsShotTeleop--;
-      }
-    }
-  }
-
-  public int getBallsFedCount()    { return ballsFedCount; }
-  public int getBallsShotAuto()    { return ballsShotAuto; }
-  public int getBallsShotTeleop()  { return ballsShotTeleop; }
-  public int getBallsShotEndgame() { return ballsShotEndgame; }
-  public int getBallsPassed()      { return ballsPassed; }
-  public int getBallsShotTotal()   { return ballsShotAuto + ballsShotTeleop + ballsShotEndgame; }
-
-  public void resetBallCounters() {
-    ballsFedCount    = 0;
-    ballsShotAuto    = 0;
-    ballsShotTeleop  = 0;
-    ballsShotEndgame = 0;
-    ballsPassed      = 0;
-    SmartLogger.logConsole("Ball counters reset", "BallCount");
-  }
-
-  public void setClimberState(ClimberState climberState) {
-    if (this.climberState == climberState) {
-      return;
-    }
-    this.climberState = climberState;
-    SmartLogger.logReplay("RobotState/ClimberState", climberState.toString());
-  }
-
-  public ClimberState getClimberState() { return climberState; }
-
-
-  public void setClimberPullPercent(double percent) {
-    if (Math.abs(climberPullPercent - percent) < 0.001) return;
-    climberPullPercent = percent;
-    SmartLogger.logReplay("RobotState/Climber/PullPercent", percent);
-  }
-
-  public double getClimberPullPercent() { return climberPullPercent; }
-
-  public void setClimberRotationPercent(double percent) {
-    if (Math.abs(climberRotationPercent - percent) < 0.001) return;
-    climberRotationPercent = percent;
-    SmartLogger.logReplay("RobotState/Climber/RotationPercent", percent);
-  }
-
-  public double getClimberRotationPercent() { return climberRotationPercent; }
 
   // Updates match phase state - call once per teleop periodic loop.
   public void updateMatchPhase() {
@@ -340,7 +158,7 @@ public class RobotState {
     return matchPhaseTracker.shouldShoot(leadSeconds, stopEarlySeconds);
   }
 
-  // Zone-aware shoot gate — checks match phase and current robot zone.
+  // Zone-aware shoot gate - checks match phase and current robot zone.
   // Returns true when shooting/passing is allowed. Always true in plain teleop (no match time).
   public boolean shouldShootInZone() {
     return matchPhaseTracker.shouldShootInZone(shootingZone);
@@ -355,4 +173,3 @@ public class RobotState {
   public double getSecondsUntilPhaseEnd() { return matchPhaseTracker.getSecondsUntilPhaseEnd(); }
   public boolean hasMatchGameData()       { return matchPhaseTracker.hasGameData(); }
 }
-

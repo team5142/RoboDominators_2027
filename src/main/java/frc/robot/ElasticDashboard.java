@@ -5,24 +5,24 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.PoseEstimatorSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 import frc.robot.subsystems.TagVisionSubsystem;
-import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.util.MatchPhaseTracker;
 import frc.robot.util.SmartLogger;
 
 // Publishes robot data to Elastic Dashboard via NetworkTables
 // Elastic auto-creates widgets from published data
 public class ElasticDashboard {
-  
+
   private final NetworkTable elasticTable;
   private final RobotState robotState;
   private final PoseEstimatorSubsystem poseEstimator;
   private final QuestNavSubsystem questNav;
   private final TagVisionSubsystem tagVision;
   private final DriveSubsystem drive;
-  
+
   private final NetworkTable statusTable;
   private final NetworkTable poseTable;
   private final NetworkTable questTable;
@@ -67,33 +67,24 @@ public class ElasticDashboard {
   private final NetworkTableEntry selectedTab;
   private String lastSelectedTab = "";
 
-  // Ball counters
-  private final NetworkTable scoringTable;
-  private final NetworkTableEntry scoringAuto;
-  private final NetworkTableEntry scoringTeleop;
-  private final NetworkTableEntry scoringEndgame;
-  private final NetworkTableEntry scoringPassed;
-  private final NetworkTableEntry scoringTotal;
-  private final NetworkTableEntry scoringResetButton; // Elastic boolean toggle — reset when true
-
   // Tracks how long the robot has been enabled (used when no FMS match time)
   private final Timer enabledTimer = new Timer();
   private boolean wasEnabled = false;
   private int updateCounter = 0; // Used to throttle slow-changing fields to 10Hz
-  
+
   public ElasticDashboard(
       RobotState robotState,
       PoseEstimatorSubsystem poseEstimator,
       QuestNavSubsystem questNav,
       TagVisionSubsystem tagVision,
       DriveSubsystem drive) {
-    
+
     this.robotState = robotState;
     this.poseEstimator = poseEstimator;
     this.questNav = questNav;
     this.tagVision = tagVision;
     this.drive = drive;
-    
+
     // Create Elastic-specific table
     this.elasticTable = NetworkTableInstance.getDefault().getTable("Elastic");
 
@@ -146,18 +137,9 @@ public class ElasticDashboard {
     phaseCountdownText = phaseTable.getEntry("CountdownText");
     phaseShiftNumber = phaseTable.getEntry("ShiftNumber");
 
-    scoringTable = elasticTable.getSubTable("Scoring");
-    scoringAuto        = scoringTable.getEntry("Auto");
-    scoringTeleop      = scoringTable.getEntry("Teleop");
-    scoringEndgame     = scoringTable.getEntry("Endgame");
-    scoringPassed      = scoringTable.getEntry("Passed");
-    scoringTotal       = scoringTable.getEntry("Total");
-    scoringResetButton = scoringTable.getEntry("Reset");
-    scoringResetButton.setBoolean(false); // ensure it starts as false
-
     selectedTab = NetworkTableInstance.getDefault().getTable("Elastic").getEntry("SelectedTab");
   }
-  
+
   // Update dashboard - call from Robot.robotPeriodic()
   public void update(double batteryVoltage) {
     updateCounter++;
@@ -190,17 +172,6 @@ public class ElasticDashboard {
       visionTotalCameras.setInteger(tagVision.getCameraCount());
       visionHasPose.setBoolean(tagVision.hasRecentTagPose());
       poseInitialized.setBoolean(poseEstimator.isInitialized());
-
-      // Ball counters — check reset button first, then publish current values
-      if (scoringResetButton.getBoolean(false)) {
-        robotState.resetBallCounters();
-        scoringResetButton.setBoolean(false);
-      }
-      scoringAuto.setInteger(robotState.getBallsShotAuto());
-      scoringTeleop.setInteger(robotState.getBallsShotTeleop());
-      scoringEndgame.setInteger(robotState.getBallsShotEndgame());
-      scoringPassed.setInteger(robotState.getBallsPassed());
-      scoringTotal.setInteger(robotState.getBallsShotTotal());
     }
 
     // Pose, QuestNav position, and drive velocity change every loop - publish at full rate
@@ -237,7 +208,7 @@ public class ElasticDashboard {
       phaseCountdownText.setString("");
     }
   }
-  
+
   // Map current game phase to the matching Elastic tab name
   private String computeTabName() {
     MatchPhaseTracker.GamePhase phase = robotState.getGamePhase();

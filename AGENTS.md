@@ -67,6 +67,17 @@ Before writing new code, consider whether existing code can be simplified, reuse
 
 When modifying existing code, preserve the project's coding style and architecture. Match surrounding naming, formatting, comment style, and design patterns unless explicitly asked to refactor.
 
+## Patch Reliability
+
+When editing existing files:
+
+- Re-read the file immediately before applying a patch.
+- Keep patches as small and local as possible.
+- When changing comments, Javadocs, or formatting-sensitive text blocks, patch the entire nearest logical block instead of making partial line edits.
+- If a patch fails, refresh file context before retrying.
+- Avoid broad patch context when only a small change is needed.
+- Comment-only edits are formatting-sensitive. Re-read the file immediately before editing and prefer replacing the full local comment block over partial in-line patching.
+
 ## Explanations
 
 Keep explanations concise.

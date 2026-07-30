@@ -347,9 +347,7 @@ public final class Constants {
     public static final int TURRET_MOTOR_ID = 23; // Kraken x44
 
     // Hood uses a limit switch at the bottom stop (85 deg) instead of a CANcoder.
-    // A CANcoder can be retrofitted later — see TODO in TurretIOCTRE.java.
     public static final int HOOD_LIMIT_SWITCH_DIO = 2; // confirmed
-    // TODO: if a CANcoder is added to the turret rotation axis later, add TURRET_CANCODER_ID here.
     public static final int HALL_SENSOR_CCW_DIO = 0;  // confirmed — CCW hard stop, primary home sensor
 
     // Gear train: Kraken X44 (1:1) → 20T pinion → 200T turret ring
@@ -561,98 +559,6 @@ public final class Constants {
     public static final double[] MEASURED_PCT_STEPS        = { 0.30,  0.40,  0.50,  0.60,  0.70,  0.80,  0.90,  1.00  };
     public static final double[] MEASURED_FRONT_RPS        = { 29.52, 39.99, 50.14, 59.56, 68.86, 78.10, 87.16, 94.87 };
     public static final double[] MEASURED_BACK_RPS         = { 26.61, 36.91, 46.38, 56.52, 65.64, 74.58, 82.11, 86.40 };
-  }
-
-  // Singulator hardware IDs and tuning constants (feeds balls one at a time into flywheels)
-  public static final class Singulator {
-    public static final int MOTOR_ID = 24; // REV NEO on SparkMax
-    public static final int LASERCAN_ID = 28; // LaserCAN — ball present at singulator staging point
-    public static final int DEAD_ZONE_LASERCAN_ID = 29; // LaserCAN — ball stuck above singulator, below flywheels
-    // Ball is considered present when LaserCAN reads closer than this distance.
-    // Channel is ~7-8in wide, ball is 6in diameter. Sensor shoots across the channel (~200mm).
-    // 150mm catches the ball anywhere in the inner half without false-triggering on the far wall.
-    public static final int LASERCAN_THRESHOLD_MM = 150; // TODO: verify on hardware
-    public static final int DEAD_ZONE_LASERCAN_THRESHOLD_MM = 150; // TODO: verify on hardware
-
-    // Minimum time between shots in auto mode — prevents back-to-back balls from interfering.
-    public static final double AUTO_SHOT_GAP_SECS = 0.35; // TODO: tune on hardware
-    // How long to reverse the singulator when attempting dead zone recovery.
-    public static final double DEAD_ZONE_REVERSE_SECS = 0.40; // TODO: tune on hardware
-    // How long before dead zone detection triggers recovery — shortened from 1.0s to react faster.
-    // Previous value was 1.0s; 0.3s catches the jam before the next ball piles up behind it.
-    public static final double DEAD_ZONE_DETECT_SECS = 0.30;
-    // How long to push forward before giving up on dead zone clearance.
-    public static final double DEAD_ZONE_PUSH_TIMEOUT_SECS = 1.0;
-
-    // Feed recovery: alternates spindexer reverse and intake agitate every 4s when no ball
-    // is seen at the staging beam break. Disabled until beam breaks are fully commissioned.
-    public static final boolean ENABLE_AUTO_FEED_RECOVERY = false;
-    public static final double  FEED_RECOVERY_INTERVAL_SECS = 4.0;  // time between each action
-    public static final double  FEED_RECOVERY_PULSE_SECS    = 0.5;  // duration of each pulse
-    public static final double  FEED_RECOVERY_GIVE_UP_SECS  = 32.0; // jam after this long
-
-    // TODO: flip to true if motor runs backwards on first test
-    public static final boolean MOTOR_INVERTED = true;
-
-    public static final double FEED_SPEED    =  1.00; // raised from 0.85 (2026-03-11)
-    public static final double REVERSE_SPEED = -0.85;
-
-    // Pre-feed prime: briefly reverse before feeding to pull the ball back into compression.
-    // The ball sits in a deadzone at the turret plane where the wheel barely contacts it —
-    // reversing for ~0.1s pulls it back so the forward feed has traction from the start.
-    // TODO: tune PRIME_REVERSE_SECS on hardware (start at 0.10, raise if ball slips on feed)
-    public static final double PRIME_REVERSE_SECS = 0.10;
-
-    // SparkMax smart current limit (stall protection)
-    public static final int CURRENT_LIMIT_AMPS = 30;
-  }
-
-  // Spindexer hardware IDs and tuning constants (cone spinner that feeds balls into singulator)
-  public static final class Spindexer {
-    public static final int MOTOR_ID = 27; // REV NEO on SparkMax
-
-    // TODO: flip to true if motor runs backwards on first test
-    public static final boolean MOTOR_INVERTED = true;
-
-    public static final double FORWARD_SPEED = 1.0;
-    // Full reverse on agitate — maximum force to break jam in minimum time.
-    // Previous value was -0.50 (conservative placeholder).
-    public static final double REVERSE_SPEED = -0.6;
-
-    // Agitator auto-reverse: current-based detection (replaces velocity-based).
-    // Current spikes immediately when balls pile on; velocity was too slow to react.
-    // If current exceeds LOAD_CURRENT_AMPS for AGITATE_LOOP_THRESHOLD consecutive loops,
-    // fire a short full-reverse pulse, then resume forward.
-    // Previous: velocity < STALL_VELOCITY_RPS for 15 loops (~300ms detection, 200ms pulse).
-    // Now: current > LOAD_CURRENT_AMPS for 5 loops (~100ms detection, 100ms pulse).
-    public static final int    AGITATE_LOOP_THRESHOLD = 5;    // ~100ms sustained overload before agitating
-    public static final int    AGITATE_PULSE_LOOPS    = 5;    // ~100ms full-reverse pulse
-
-    // SparkMax smart current limit (stall protection)
-    public static final int CURRENT_LIMIT_AMPS = 45; // raised from 30 — gives NEO more torque headroom under load
-    // Jam detection threshold — tune up if agitating during normal ball load, down if jams go undetected.
-    // Watch Spindexer/CurrentAmps in AdvantageScope: normal load ~10-20A, jam should spike well above.
-    public static final double LOAD_CURRENT_AMPS = 28.0; // tune on hardware — previous placeholder was 15.0
-  }
-
-  // Climber mechanism hardware IDs and tuning
-  public static final class Climber {
-    public static final int PULL_MOTOR_ID = 50;
-    public static final int ROTATION_MOTOR_ID = 51;
-
-    // Inversion - confirm on hardware before enabling
-    public static final boolean PULL_MOTOR_INVERTED     = false; // TODO: verify direction
-    public static final boolean ROTATION_MOTOR_INVERTED = false; // TODO: verify direction
-
-    // Current limits - conservative until mechanism is tested on robot
-    public static final double PULL_STATOR_LIMIT_AMPS     = 40.0; // tune up if motor stalls under load
-    public static final double PULL_SUPPLY_LIMIT_AMPS     = 30.0;
-    public static final double ROTATION_STATOR_LIMIT_AMPS = 30.0;
-    public static final double ROTATION_SUPPLY_LIMIT_AMPS = 25.0;
-
-    // Operator control speeds - start very slow, increase once direction is confirmed
-    public static final double PULL_SPEED     = 0.15; // tune on hardware
-    public static final double ROTATION_SPEED = 0.15; // tune on hardware
   }
 
   // Autonomous path following (PathPlanner PID tuning)
@@ -1021,3 +927,4 @@ public final class Constants {
     public static final double DEFAULT_ERROR_THETA_DEGREES = 2.0;
   }
 }
+
