@@ -589,48 +589,6 @@ public final class Constants {
     public static final double SHOOT_IN_PLACE_SHOOT_SECONDS  = 8.0; // feed window for ~8 balls
   }
 
-// Bump traversal staging poses (blue alliance frame, red mirrored automatically)
-  public static final class BumpPoses {
-    // Left bump staging poses (Y = 5.528 m, bump centerline 217.64 in from wall)
-    public static final Pose2d BLUE_LEFTBUMP_ALLIANCE_STAGING = new Pose2d(2.972, 5.39, Rotation2d.fromDegrees(45.0));
-    public static final Pose2d BLUE_LEFTBUMP_NEUTRAL_STAGING = new Pose2d(6.284, 5.39, Rotation2d.fromDegrees(45.0));
-    public static final Pose2d BLUE_AUTO_START_RIGHT = new Pose2d(3.657, 2.444, Rotation2d.fromDegrees(0.0));
-   // Right bump staging poses (Y = 2.508 m, bump centerline 98.76 in from wall)
-    public static final Pose2d BLUE_RIGHTBUMP_ALLIANCE_STAGING = new Pose2d(2.972, 2.35, Rotation2d.fromDegrees(45.0));
-    public static final Pose2d BLUE_RIGHTBUMP_NEUTRAL_STAGING = new Pose2d(6.284, 2.35, Rotation2d.fromDegrees(45.0));
-
-    // Far-side (opponent zone) staging poses (X pushed into opponent zone past neutral exit)
-    public static final Pose2d BLUE_LEFTBUMP_OPPONENT_STAGING = new Pose2d(9.596, 5.39, Rotation2d.fromDegrees(45.0));
-    public static final Pose2d BLUE_RIGHTBUMP_OPPONENT_STAGING = new Pose2d(9.596, 2.35, Rotation2d.fromDegrees(45.0));
-
-    // Red alliance mirrored poses (rotational symmetry: X = FIELD_LENGTH-X, Y = FIELD_WIDTH-Y, rot+180)
-    public static final Pose2d RED_LEFTBUMP_ALLIANCE_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_LEFTBUMP_ALLIANCE_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_LEFTBUMP_ALLIANCE_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-    public static final Pose2d RED_LEFTBUMP_NEUTRAL_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_LEFTBUMP_NEUTRAL_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_LEFTBUMP_NEUTRAL_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-    public static final Pose2d RED_LEFTBUMP_OPPONENT_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_LEFTBUMP_OPPONENT_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_LEFTBUMP_OPPONENT_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-
-    public static final Pose2d RED_RIGHTBUMP_ALLIANCE_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_RIGHTBUMP_ALLIANCE_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_RIGHTBUMP_ALLIANCE_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-    public static final Pose2d RED_RIGHTBUMP_NEUTRAL_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_RIGHTBUMP_NEUTRAL_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_RIGHTBUMP_NEUTRAL_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-    public static final Pose2d RED_RIGHTBUMP_OPPONENT_STAGING = new Pose2d(
-        Field.FIELD_LENGTH_METERS - BLUE_RIGHTBUMP_OPPONENT_STAGING.getX(),
-        Field.FIELD_WIDTH_METERS  - BLUE_RIGHTBUMP_OPPONENT_STAGING.getY(),
-        Rotation2d.fromDegrees(225.0));
-  }
-
   // Field positions (all blue alliance - red is mirrored automatically)
   public static final class StartingPositions {
     
