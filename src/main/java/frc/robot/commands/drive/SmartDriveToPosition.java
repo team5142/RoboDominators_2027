@@ -17,89 +17,84 @@ import frc.robot.subsystems.PoseEstimatorSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 import frc.robot.util.SmartLogger;
 
+// Builds the two-phase SmartDrive command (PathPlanner pathfind, then QuestNav-locked
+// AutoPilot precision). Owned as a single instance by RobotContainer and shared with
+// anything else (e.g. TouchscreenInterface) that needs to build these commands.
 public class SmartDriveToPosition {
   private static final double PATHFINDER_TIMEOUT_S = 8.0;
   private static final double QUESTNAV_WAIT_TIMEOUT_S = 3.0;
 
-  private static PoseEstimatorSubsystem s_poseEstimator;
-  private static RobotState s_robotState;
-  private static DriveSubsystem s_driveSubsystem;
-  private static QuestNavSubsystem s_questNavSubsystem;
+  private final PoseEstimatorSubsystem poseEstimator;
+  private final RobotState robotState;
+  private final DriveSubsystem driveSubsystem;
+  private final QuestNavSubsystem questNavSubsystem;
 
-  public static void configure(
+  public SmartDriveToPosition(
       PoseEstimatorSubsystem poseEstimator,
       RobotState robotState,
       DriveSubsystem driveSubsystem,
       QuestNavSubsystem questNavSubsystem) {
-    s_poseEstimator = poseEstimator;
-    s_robotState = robotState;
-    s_driveSubsystem = driveSubsystem;
-    s_questNavSubsystem = questNavSubsystem;
+    this.poseEstimator = poseEstimator;
+    this.robotState = robotState;
+    this.driveSubsystem = driveSubsystem;
+    this.questNavSubsystem = questNavSubsystem;
   }
 
-  public static Command create(Pose2d stagingPose, Pose2d finalTargetPose) {
-    if (s_poseEstimator == null) {
-      throw new IllegalStateException("SmartDriveToPosition not configured! Call configure() in RobotContainer first.");
-    }
-
+  public Command create(Pose2d stagingPose, Pose2d finalTargetPose) {
     SmartLogger.logReplay("SmartDrive/StagingPose", stagingPose);
     SmartLogger.logReplay("SmartDrive/FinalTargetPose", finalTargetPose);
-    
+
     Command toStaging = AutoBuilder.pathfindToPose(stagingPose, createPathPlannerConstraints()).withTimeout(PATHFINDER_TIMEOUT_S);
-    
+
     return new SequentialCommandGroup(
         Commands.runOnce(() -> {
-          s_robotState.setNavigationPhase(RobotState.NavigationPhase.FAST_APPROACH);
+          robotState.setNavigationPhase(RobotState.NavigationPhase.FAST_APPROACH);
           SmartLogger.logReplay("SmartDrive/Status", "Phase 1: PathPlanner");
           SmartLogger.logReplay("SmartDrive/Phase", "PathPlanner");
         }),
         toStaging,
-        
+
         createPrecisionPhase(finalTargetPose),
-        
+
         Commands.runOnce(() -> {
-          s_robotState.setNavigationPhase(RobotState.NavigationPhase.LOCKED);
+          robotState.setNavigationPhase(RobotState.NavigationPhase.LOCKED);
           SmartLogger.logReplay("SmartDrive/Status", "Complete");
-          s_driveSubsystem.lockWheels();
+          driveSubsystem.lockWheels();
           SmartLogger.logReplay("SmartDrive/Complete", true);
         })
     ).finallyDo((interrupted) -> {
-      s_robotState.setNavigationPhase(RobotState.NavigationPhase.NONE);
+      robotState.setNavigationPhase(RobotState.NavigationPhase.NONE);
       SmartLogger.logReplay("SmartDrive/Status", interrupted ? "Interrupted" : "Complete");
       SmartLogger.logReplay("SmartDrive/Interrupted", interrupted);
     });
   }
-  
-  public static Command createPrecisionPhase(Pose2d finalTargetPose) {
-    if (s_poseEstimator == null) {
-      throw new IllegalStateException("SmartDriveToPosition not configured!");
-    }
-    
+
+  public Command createPrecisionPhase(Pose2d finalTargetPose) {
     final boolean[] lockAcquired = {false};
     final boolean[] timedOut = {false};
-    
+
     return new SequentialCommandGroup(
         Commands.runOnce(() -> {
-          s_driveSubsystem.driveRobotRelative(new ChassisSpeeds(0, 0, 0));
-          s_questNavSubsystem.pauseFusion();
+          driveSubsystem.driveRobotRelative(new ChassisSpeeds(0, 0, 0));
+          questNavSubsystem.pauseFusion();
           SmartLogger.logConsole("Phase 2: waiting for fresh Quest pose", "SmartDrive");
-          s_robotState.setNavigationPhase(RobotState.NavigationPhase.FAST_APPROACH);
+          robotState.setNavigationPhase(RobotState.NavigationPhase.FAST_APPROACH);
         }),
 
         Commands.sequence(
             Commands.waitUntil(() -> {
-              boolean tracking = s_questNavSubsystem.isTracking();
-              double age = s_questNavSubsystem.getMeasurementAge();
+              boolean tracking = questNavSubsystem.isTracking();
+              double age = questNavSubsystem.getMeasurementAge();
               return tracking && (age < 0.2);
             }),
             Commands.runOnce(() -> {
-              boolean tracking = s_questNavSubsystem.isTracking();
-              double age = s_questNavSubsystem.getMeasurementAge();
-              boolean accepted = s_poseEstimator.forceAcceptQuestNavPose();
+              boolean tracking = questNavSubsystem.isTracking();
+              double age = questNavSubsystem.getMeasurementAge();
+              boolean accepted = poseEstimator.forceAcceptQuestNavPose();
               lockAcquired[0] = accepted;
-              
+
               if (accepted) {
-                SmartLogger.logConsole("QuestNav locked: " + SmartLogger.formatPose(s_poseEstimator.getEstimatedPose()), "SmartDrive");
+                SmartLogger.logConsole("QuestNav locked: " + SmartLogger.formatPose(poseEstimator.getEstimatedPose()), "SmartDrive");
                 SmartLogger.logReplay("SmartDrive/ForceAcceptSuccess", true);
               } else {
                 SmartLogger.logConsoleError("SmartDrive: Force-accept failed | tracking=" + tracking + " age=" + String.format("%.3fs", age));
@@ -113,9 +108,9 @@ public class SmartDriveToPosition {
                 Commands.runOnce(() -> timedOut[0] = true)
             )
         ),
-        
+
         Commands.runOnce(() -> {
-          s_questNavSubsystem.resumeFusion();
+          questNavSubsystem.resumeFusion();
 
           if (timedOut[0]) {
             SmartLogger.logConsoleError("SmartDrive: QuestNav timeout - proceeding with odometry-only");
@@ -130,19 +125,19 @@ public class SmartDriveToPosition {
         }),
 
         Commands.runOnce(() -> {
-          s_robotState.setNavigationPhase(RobotState.NavigationPhase.PRECISION_PATH);
+          robotState.setNavigationPhase(RobotState.NavigationPhase.PRECISION_PATH);
           SmartLogger.logConsole("Phase 3: AutoPilot to " + SmartLogger.formatPose(finalTargetPose), "SmartDrive");
           SmartLogger.logReplay("SmartDrive/PrecisionTarget", finalTargetPose);
           SmartLogger.logReplay("SmartDrive/Phase", "AutoPilot");
         }),
-        new AutoPilotToTargetCommand(finalTargetPose, s_driveSubsystem, s_poseEstimator, 0, 0, 0),
+        new AutoPilotToTargetCommand(finalTargetPose, driveSubsystem, poseEstimator, 0, 0, 0),
 
         Commands.runOnce(() -> {
           SmartLogger.logConsole("Precision complete", "SmartDrive");
           SmartLogger.logReplay("SmartDrive/PrecisionComplete", true);
         })
     ).finallyDo((interrupted) -> {
-      s_questNavSubsystem.resumeFusion();
+      questNavSubsystem.resumeFusion();
 
       if (interrupted) {
         SmartLogger.logConsole("Precision phase interrupted - fusion resumed", "SmartDrive");

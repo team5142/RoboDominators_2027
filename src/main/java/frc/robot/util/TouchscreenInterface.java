@@ -35,6 +35,7 @@ public class TouchscreenInterface {
   private final DriveSubsystem driveSubsystem;
   private final PoseEstimatorSubsystem poseEstimator;
   private final QuestNavSubsystem questNav;
+  private final SmartDriveToPosition smartDriveToPosition;
 
   private final NetworkTableInstance ntInst = NetworkTableInstance.getDefault();
 
@@ -61,12 +62,14 @@ public class TouchscreenInterface {
       RobotState robotState,
       DriveSubsystem driveSubsystem,
       PoseEstimatorSubsystem poseEstimator,
-      QuestNavSubsystem questNav) {
+      QuestNavSubsystem questNav,
+      SmartDriveToPosition smartDriveToPosition) {
 
     this.robotState = robotState;
     this.driveSubsystem = driveSubsystem;
     this.poseEstimator = poseEstimator;
     this.questNav = questNav;
+    this.smartDriveToPosition = smartDriveToPosition;
   }
 
   public void configure() {
@@ -209,7 +212,7 @@ public class TouchscreenInterface {
 
     robotState.setOperatorDriveLockout(true);
 
-    Command cmd = SmartDriveToPosition.create(target.staging, target.precise)
+    Command cmd = smartDriveToPosition.create(target.staging, target.precise)
         .finallyDo(interrupted -> robotState.setOperatorDriveLockout(false));
 
     activeOperatorDrive = cmd;

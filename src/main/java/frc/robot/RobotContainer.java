@@ -12,7 +12,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
-import java.util.Optional;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -42,8 +41,6 @@ public class RobotContainer {
   private static final double AUTO_SEED_POS_TOL_METERS = 0.20;
   private static final double AUTO_SEED_ROT_TOL_DEG = 10.0;
 
-  private static Alliance cachedAlliance = Alliance.Blue;
-
   // Driver Xbox controller on USB port defined in Constants
   private final XboxController driverController = new XboxController(DRIVER_CONTROLLER_PORT);
   // Operator Xbox controller on the next USB slot (port 1)
@@ -63,6 +60,7 @@ public class RobotContainer {
   final PoseEstimatorSubsystem poseEstimator;
   final TagVisionSubsystem tagVisionSubsystem;
   public final LEDSubsystem ledSubsystem;
+  final SmartDriveToPosition smartDriveToPosition;
 
   // Autonomous chooser shown on dashboard; selection drives pose preview and auto init
   private final SendableChooser<Command> autoChooser;
@@ -101,15 +99,14 @@ public class RobotContainer {
     tagVisionSubsystem = new TagVisionSubsystem(poseEstimator);
     ledSubsystem = new LEDSubsystem(this.robotState);
 
-    updateAllianceFromDriverStation();
-    this.robotState.setAlliance(cachedAlliance); // Must be set before PathPlanner config
+    updateAllianceFromDriverStation(); // Sets robotState's alliance - must happen before PathPlanner config
 
     if (COMPETITION_MODE) {
       SmartLogger.logReplay("Robot/CompetitionMode", true);
     }
 
     poseEstimator.setTagVisionSubsystem(tagVisionSubsystem); // Cross-wire vision into pose estimator
-    SmartDriveToPosition.configure(poseEstimator, robotState, driveSubsystem, questNav); // Static config for SmartDrive commands
+    smartDriveToPosition = new SmartDriveToPosition(poseEstimator, robotState, driveSubsystem, questNav);
 
     configurePathPlanner();
     configureDefaultCommands();
@@ -203,17 +200,17 @@ public class RobotContainer {
     // START: Seed pose selected from "Shot Seed Pose" dropdown in Elastic.
     // Poses are defined in blue coordinates — flipped automatically when on red alliance.
     // isRed is derived from the final seeded pose X (> field midpoint = red) rather than
-    // cachedAlliance, because the cache may not have updated yet when the button is pressed.
+    // robotState.getAlliance(), because that may not have updated yet when the button is pressed.
     new JoystickButton(driverController, XboxController.Button.kStart.value)
         .onTrue(Commands.runOnce(() -> {
           Pose2d seed = shotSeedChooser.getSelected();
           if (seed == null) seed = Constants.StartingPositions.SHOT_SEED_2M;
-          boolean seedIsRed = isRedAlliance();
+          boolean seedIsRed = robotState.getAlliance() == Alliance.Red;
           if (seedIsRed) {
             seed = FieldUtil.mirrorPoseForRed(seed);
           }
-          // Determine perspective from the final pose X so it's correct even if cachedAlliance
-          // hasn't updated yet. X > midpoint means the robot is on the red side of the field.
+          // Determine perspective from the final pose X so it's correct even if robotState's
+          // alliance hasn't updated yet. X > midpoint means the robot is on the red side of the field.
           boolean poseIsRed = seed.getX() > Constants.Field.FIELD_LENGTH_METERS / 2.0;
           CommandScheduler.getInstance().schedule(
               new SetStartingPoseCommand(seed, "SHOT SEED", gyro, questNav, driveSubsystem, poseEstimator, poseIsRed));
@@ -239,7 +236,7 @@ public class RobotContainer {
 
   // HTML touchscreen interface
   private void configureTouchscreenInterface() {
-    touchscreen = new TouchscreenInterface(robotState, driveSubsystem, poseEstimator, questNav);
+    touchscreen = new TouchscreenInterface(robotState, driveSubsystem, poseEstimator, questNav, smartDriveToPosition);
     touchscreen.configure();
   }
 
@@ -288,7 +285,7 @@ public class RobotContainer {
 
   // Mirror red alliance paths
   private boolean shouldFlipPath() {
-    return isRedAlliance();
+    return robotState.getAlliance() == Alliance.Red;
   }
 
   // Runs at 2Hz as a daemon thread while disabled.
@@ -336,7 +333,6 @@ public class RobotContainer {
   public void periodic() {
     periodicCounter++;
     updateAllianceFromDriverStation();
-    robotState.setAlliance(cachedAlliance);
     if (DriverStation.isDisabled()) {
       applyPendingAutoPreviewPose();
     }
@@ -347,7 +343,7 @@ public class RobotContainer {
 
     // Publish slow-changing fields at 10Hz - alliance/station/auto don't change every loop
     if (periodicCounter % 5 == 0) {
-      SmartDashboard.putBoolean("Robot/IsRedAlliance", cachedAlliance == Alliance.Red);
+      SmartDashboard.putBoolean("Robot/IsRedAlliance", robotState.getAlliance() == Alliance.Red);
       SmartDashboard.putNumber("Robot/StationNumber", DriverStation.getLocation().orElse(1));
       // Read the chooser's active option name from SmartDashboard - getSelected().getName() returns
       // the Java class name, not the auto name, so we read the NT entry directly
@@ -356,24 +352,12 @@ public class RobotContainer {
     }
   }
 
-  public static Alliance getAlliance() {
-    return cachedAlliance;
-  }
-
-  public static boolean isRedAlliance() {
-    return cachedAlliance == Alliance.Red;
-  }
-
+  // Alliance comes straight from the Driver Station app's station selector (Blue/Red 1-3),
+  // which is set manually during practice and by FMS during a real match - no FMS
+  // connection is required for the DS app to report it. Defaults to Blue only if the DS
+  // hasn't reported anything at all yet (e.g. very early in boot).
   private void updateAllianceFromDriverStation() {
-    Optional<Alliance> fmsAlliance = DriverStation.getAlliance();
-    if (fmsAlliance.isPresent()) {
-      cachedAlliance = fmsAlliance.get();
-    } else {
-      // No FMS — infer from seeded pose X. Robot on Red side has X > field midpoint.
-      double midX = Constants.Field.FIELD_LENGTH_METERS / 2.0;
-      double poseX = poseEstimator.getEstimatedPose().getX();
-      cachedAlliance = (poseX > midX) ? Alliance.Red : Alliance.Blue;
-    }
+    robotState.setAlliance(DriverStation.getAlliance().orElse(Alliance.Blue));
   }
 
   // Called from periodic() (main thread) to apply a pose queued by the preview thread.
@@ -398,7 +382,7 @@ public class RobotContainer {
 
     // Seed the gyro to the auto start pose's field heading, then set perspective = allianceDownfield.
     // CTRE field-centric: effectiveHeading = gyro - perspective, so forward = Red wall.
-    boolean isRedForPreview = cachedAlliance == Alliance.Red;
+    boolean isRedForPreview = robotState.getAlliance() == Alliance.Red;
     Rotation2d allianceDownfield = Rotation2d.fromDegrees(isRedForPreview ? 180.0 : 0.0);
     Rotation2d poseHeading = pose.getRotation();
     driveSubsystem.setGyroHeading(poseHeading);
@@ -442,7 +426,7 @@ public class RobotContainer {
   }
 
   private Pose2d getRebuiltRightCornerPose() {
-    if (!isRedAlliance()) return BLUE_REBUILT_RIGHT_CORNER;
+    if (robotState.getAlliance() != Alliance.Red) return BLUE_REBUILT_RIGHT_CORNER;
     // On a full competition field use the mirrored far corner.
     // On the practice field use the dedicated Red seed pose instead.
     return COMPETITION_MODE ? RED_REBUILT_RIGHT_CORNER : RED_PRACTICE_SEED;
