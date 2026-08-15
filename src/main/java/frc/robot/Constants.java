@@ -43,6 +43,13 @@ public final class Constants {
     public static final double PRECISION_ROTATION_SCALE   = 0.10;
     public static final double FAST_SPEED_SCALE           = 1.0;
     public static final double JOYSTICK_DEADBAND     = 0.05; // slightly larger to reduce touchiness
+    // Max rate the commanded x/y can change, in stick units (1.0 = full stick) per second.
+    // Smooths stick noise/hard reversals into a ramp instead of an instant jump.
+    // Starting value - tune on-robot for feel.
+    public static final double TRANSLATION_SLEW_RATE_PER_SEC = 3.0; // 0 -> full stick in ~1/3 sec
+    // Separate (higher) rate for rotation - drivers expect snappier turning than translation,
+    // so this is intentionally looser than the translation limit. Starting value - tune on-robot.
+    public static final double ROTATION_SLEW_RATE_PER_SEC = 6.0; // 0 -> full stick in ~1/6 sec
 
     // Module positions on robot frame (meters from center)
     public static final Translation2d FRONT_LEFT_LOCATION = new Translation2d(WHEEL_BASE_METERS / 2.0, TRACK_WIDTH_METERS / 2.0);
