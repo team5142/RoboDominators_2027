@@ -2,7 +2,6 @@ package frc.robot;
 
 import static frc.robot.Constants.DRIVER_CONTROLLER_PORT;
 import static frc.robot.Constants.Auto.*;
-import static frc.robot.Constants.StartingPositions.*;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -371,13 +370,6 @@ public class RobotContainer {
     SmartLogger.logReplay("Auto/QuestRotErrDeg", rotErr);
 
     return posErr > AUTO_SEED_POS_TOL_METERS || rotErr > AUTO_SEED_ROT_TOL_DEG;
-  }
-
-  private Pose2d getRebuiltRightCornerPose() {
-    if (robotState.getAlliance() != Alliance.Red) return BLUE_REBUILT_RIGHT_CORNER;
-    // On a full competition field use the mirrored far corner.
-    // On the practice field use the dedicated Red seed pose instead.
-    return COMPETITION_MODE ? RED_REBUILT_RIGHT_CORNER : RED_PRACTICE_SEED;
   }
 }
 

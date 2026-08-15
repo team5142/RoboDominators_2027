@@ -247,15 +247,6 @@ public final class Constants {
     public static final double[] QUESTNAV_STD_DEVS_STOPPED = {0.02, 0.02, 0.03}; // 2cm XY, 1.7° theta
     public static final double[] QUESTNAV_STD_DEVS_INITIAL = {0.01, 0.01, 0.02}; // 1cm XY, 1.1° theta
     
-    // 3) INNOVATION GATING (tighter gates for high-accuracy sensor)
-    // Base gates (measurement must be close to estimate at measurement time)
-    public static final double INNOVATION_GATE_POS_BASE_METERS = 0.10; // 10cm base
-    public static final double INNOVATION_GATE_ROT_BASE_DEGREES = 5.0; // 5° base
-    
-    // Motion-based expansion (allow for robot motion during measurement age)
-    public static final double INNOVATION_GATE_POS_PER_SPEED = 0.3; // 30% of linear speed * age
-    public static final double INNOVATION_GATE_ROT_PER_OMEGA = 0.2; // 20% of angular speed * age
-    
     // REACQUIRE gates (when stopped, widen gates to allow convergence)
     public static final double REACQUIRE_POS_GATE_METERS = 0.65; // 65cm when stopped
     public static final double REACQUIRE_ROT_GATE_DEGREES = 25.0; // 25° when stopped
