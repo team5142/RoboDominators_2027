@@ -69,18 +69,7 @@ public class RobotContainer {
   // Shot seed pose chooser — shown in Elastic as a dropdown; START button reads the selection.
   private final SendableChooser<Pose2d> shotSeedChooser = new SendableChooser<>();
 
-  // Preview thread writes these; main thread reads them via applyPendingAutoPreviewPose()
-  // volatile ensures changes are visible across threads without synchronization
-  private volatile Pose2d pendingAutoPreviewPose = null;
-  private volatile String pendingAutoPreviewName = null;
-
-  // Last values written to the robot - used to skip redundant resets
-  private Pose2d lastAppliedPreviewPose = null;
-  private String lastAppliedPreviewName = null;
-
-  private volatile boolean previewThreadRunning = true;
-
-  // Force preview thread to reapply pose/orientation on every boot
+  // Force the auto preview to reapply pose/orientation once on every boot
   private boolean bootPreviewApplied = false;
 
   private TouchscreenInterface touchscreen;
@@ -122,7 +111,6 @@ public class RobotContainer {
     SmartDashboard.putData("Auto Chooser", autoChooser); // Sends chooser widget to dashboard
     robotState.setSysIdMode(SYSID_MODE);
     poseEstimator.setAutoChooser(autoChooser); // Lets pose estimator read auto start poses
-    startAutoPreviewMonitor(); // Background thread: watches chooser and queues pose previews
 
     shotSeedChooser.setDefaultOption("HUBCLOSE (1.28m)", Constants.StartingPositions.SHOT_SEED_HUBCLOSE);
     shotSeedChooser.addOption("HUB 1.7M (1.67m)", Constants.StartingPositions.SHOT_SEED_HUB1_7M);
@@ -288,53 +276,11 @@ public class RobotContainer {
     return robotState.getAlliance() == Alliance.Red;
   }
 
-  // Runs at 2Hz as a daemon thread while disabled.
-  // Writes pendingAutoPreviewPose/Name (volatile) when the selected auto changes.
-  // The main thread reads them in periodic() via applyPendingAutoPreviewPose().
-  private void startAutoPreviewMonitor() {
-    Thread previewThread = new Thread(() -> {
-      while (previewThreadRunning && !Thread.currentThread().isInterrupted()) {
-        try {
-          if (DriverStation.isDisabled()) {
-            Command selectedAuto = autoChooser.getSelected();
-
-            // On first pass after boot, always apply even if auto hasn't changed.
-            // This ensures orientation is correct regardless of prior cached state.
-            if (selectedAuto != null && (selectedAuto != lastSelectedAuto || !bootPreviewApplied)) {
-              lastSelectedAuto = selectedAuto;
-              bootPreviewApplied = true;
-              String autoName = selectedAuto.getName();
-
-              Pose2d startingPose = poseEstimator
-                  .getPoseInitializer()
-                  .getStartPoseForAutoName(autoName);
-
-              pendingAutoPreviewPose = startingPose;
-              pendingAutoPreviewName = autoName;
-            }
-          }
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          SmartLogger.logConsole("[Auto Preview] Thread interrupted - stopping");
-          break;
-        } catch (Exception e) {
-          SmartLogger.logConsoleError("[Auto Preview] Error: " + e.getMessage());
-        }
-      }
-      SmartLogger.logConsole("[Auto Preview] Thread stopped cleanly");
-    });
-
-    previewThread.setDaemon(true); // Daemon thread - dies automatically when robot code exits
-    previewThread.setName("AutoPreview");
-    previewThread.start();
-  }
-
   public void periodic() {
     periodicCounter++;
     updateAllianceFromDriverStation();
     if (DriverStation.isDisabled()) {
-      applyPendingAutoPreviewPose();
+      updateAutoPreview();
     }
 
     // #1: Controller disconnect alerts — shown in DS and AdvantageScope
@@ -360,25 +306,27 @@ public class RobotContainer {
     robotState.setAlliance(DriverStation.getAlliance().orElse(Alliance.Blue));
   }
 
-  // Called from periodic() (main thread) to apply a pose queued by the preview thread.
-  // Uses volatile reads - no locks needed because Pose2d is immutable.
-  private void applyPendingAutoPreviewPose() {
-    Pose2d pose = pendingAutoPreviewPose;
-    String autoName = pendingAutoPreviewName;
+  // Called from periodic() (main loop) while disabled. Detects an auto chooser change and
+  // re-seeds gyro/pose/QuestNav to match - keeps the pose estimate aligned with whichever
+  // auto is selected so autonomous never starts from a stale pose. Runs on the main loop
+  // directly (not a background thread) so there's no latency window between the driver
+  // changing the dropdown and the pose actually updating.
+  private void updateAutoPreview() {
+    Command selectedAuto = autoChooser.getSelected();
 
-    if (pose == null || autoName == null) {
+    // On first pass after boot, always apply even if the auto hasn't changed, so
+    // orientation is correct regardless of prior state.
+    if (selectedAuto == null || (selectedAuto == lastSelectedAuto && bootPreviewApplied)) {
       return;
     }
+    lastSelectedAuto = selectedAuto;
+    bootPreviewApplied = true;
 
-    if (pose.equals(lastAppliedPreviewPose) && autoName.equals(lastAppliedPreviewName)) {
+    String autoName = selectedAuto.getName();
+    Pose2d pose = poseEstimator.getPoseInitializer().getStartPoseForAutoName(autoName);
+    if (pose == null) {
       return;
     }
-
-    pendingAutoPreviewPose = null;
-    pendingAutoPreviewName = null;
-
-    lastAppliedPreviewPose = pose;
-    lastAppliedPreviewName = autoName;
 
     // Seed the gyro to the auto start pose's field heading, then set perspective = allianceDownfield.
     // CTRE field-centric: effectiveHeading = gyro - perspective, so forward = Red wall.
