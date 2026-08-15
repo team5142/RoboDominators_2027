@@ -44,7 +44,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     // SysId routine for drive motors - finds kS, kV, kA for feedforward
-    private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
+    // protected (not private) so DriveSubsystem can switch the active routine directly.
+    protected final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
             null, // Default ramp rate (1 V/s)
             Volts.of(4), // Max 4V to prevent brownout during characterization
@@ -59,7 +60,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     );
 
     // SysId routine for steering motors - finds steering PID gains
-    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
+    protected final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
         new SysIdRoutine.Config(
             null,
             Volts.of(7), // Higher voltage for steer (lighter motors)
@@ -75,7 +76,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // SysId routine for rotation heading controller - finds rotation PID for FieldCentricFacingAngle
     // Note: Uses rad/s but SysId only understands "volts" so we pretend volts = rad/s
-    private final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
+    protected final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
         new SysIdRoutine.Config(
             Volts.of(Math.PI / 6).per(Second), // Ramp rate (actually rad/s^2)
             Volts.of(Math.PI), // Max rate (actually rad/s)
@@ -92,7 +93,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         )
     );
 
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; // Default to drive characterization
+    protected SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; // Default to drive characterization
 
     // Constructor - initializes swerve drivetrain from Tuner X constants
     public CommandSwerveDrivetrain(

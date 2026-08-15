@@ -182,7 +182,7 @@ public class RobotContainer {
 
     // BACK: Reset field orientation
     new JoystickButton(driverController, XboxController.Button.kBack.value)
-        .onTrue(driveSubsystem.createOrientToFieldCommand(robotState));
+        .onTrue(driveSubsystem.createOrientToFieldCommand());
 
     // START: Seed pose selected from "Shot Seed Pose" dropdown in Elastic.
     // Poses are defined in blue coordinates — flipped automatically when on red alliance.

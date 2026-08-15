@@ -107,12 +107,8 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
   }
   
   private Rotation2d getOperatorPerspectiveForward() {
-    var alliance = DriverStation.getAlliance();
-    if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
-      return Rotation2d.fromDegrees(180.0);
-    } else {
-      return Rotation2d.fromDegrees(0.0);
-    }
+    boolean isRed = robotState.getAlliance() == DriverStation.Alliance.Red;
+    return Rotation2d.fromDegrees(isRed ? 180.0 : 0.0);
   }
 
   public void drive(double xVelocity, double yVelocity, double rotationalVelocity, boolean fieldRelative) {
@@ -167,13 +163,12 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
     gyro.resetHeading();
   }
 
-  public Command createOrientToFieldCommand(RobotState robotState) {
+  public Command createOrientToFieldCommand() {
     return runOnce(() -> {
       // Set operator perspective to face downfield for the current alliance.
       // Blue downfield = 0 deg (toward Red wall), Red downfield = 180 deg (toward Blue wall).
       // Does NOT reset the gyro - pose estimator state is unaffected.
-      boolean isRed = DriverStation.getAlliance()
-          .map(a -> a == DriverStation.Alliance.Red).orElse(false);
+      boolean isRed = robotState.getAlliance() == DriverStation.Alliance.Red;
       Rotation2d downfield = Rotation2d.fromDegrees(isRed ? 180.0 : 0.0);
       setOperatorPerspectiveForward(downfield);
       SmartLogger.logConsole("[Drive] Field orientation reset - downfield is now "
@@ -195,6 +190,8 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
   }
 
   // SysId characterization commands - wrap base class routines with explicit test selection
+  // TODO(2027): Default SysId config/methodology gave poor results in 2026 (20+ runs, not
+  // usable) - research better ramp rates/durations/setup before relying on this again.
   public Command sysIdQuasistaticTranslation(SysIdRoutine.Direction direction) {
     return runOnce(() -> selectTranslationRoutine())
       .andThen(sysIdQuasistatic(direction));
@@ -225,51 +222,17 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
       .andThen(sysIdDynamic(direction));
   }
 
+  // m_sysIdRoutineTranslation/Steer/Rotation/ToApply are protected fields on the CTRE base
+  // class - direct assignment, no reflection needed.
   private void selectTranslationRoutine() {
-    // Access inherited field to switch active routine
-    try {
-      var field = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineToApply");
-      field.setAccessible(true);
-      var translationRoutine = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineTranslation");
-      translationRoutine.setAccessible(true);
-      field.set(this, translationRoutine.get(this));
-    } catch (Exception e) {
-      SmartLogger.logConsoleError("[Drive] Failed to select translation SysId routine: " + e.getMessage());
-    }
+    m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
   }
 
   private void selectSteerRoutine() {
-    try {
-      var field = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineToApply");
-      field.setAccessible(true);
-      var steerRoutine = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineSteer");
-      steerRoutine.setAccessible(true);
-      field.set(this, steerRoutine.get(this));
-    } catch (Exception e) {
-      SmartLogger.logConsoleError("[Drive] Failed to select steer SysId routine: " + e.getMessage());
-    }
+    m_sysIdRoutineToApply = m_sysIdRoutineSteer;
   }
 
   private void selectRotationRoutine() {
-    try {
-      var field = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineToApply");
-      field.setAccessible(true);
-      var rotationRoutine = CommandSwerveDrivetrain.class.getDeclaredField("m_sysIdRoutineRotation");
-      rotationRoutine.setAccessible(true);
-      field.set(this, rotationRoutine.get(this));
-    } catch (Exception e) {
-      SmartLogger.logConsoleError("[Drive] Failed to select rotation SysId routine: " + e.getMessage());
-    }
-  }
-
-  // Placeholder - CANcoder fusion cannot be toggled via API.
-  // Before steer SysId: use Phoenix Tuner X to set CANcoder update freq to 0Hz,
-  // OR change STEER_FEEDBACK_TYPE to SyncCANcoder in Constants.java, then reboot.
-  public void disableCANcoderFusion() {
-    SmartLogger.logConsole("CANcoder fusion disable not implemented - use Phoenix Tuner X manually", "Drive");
-  }
-
-  public void enableCANcoderFusion() {
-    SmartLogger.logConsole("CANcoder fusion enable not implemented - restore via Phoenix Tuner X and reboot", "Drive");
+    m_sysIdRoutineToApply = m_sysIdRoutineRotation;
   }
 }
