@@ -59,9 +59,9 @@ public class DriveWithJoysticks extends Command {
     double omega = MathUtil.applyDeadband(omegaSupplier.getAsDouble(), JOYSTICK_DEADBAND);
 
     // x^1.5 curve: more responsive than squaring at low speeds, less twitchy than linear
-    x = Math.copySign(Math.pow(Math.abs(x), 1.5), x);
-    y = Math.copySign(Math.pow(Math.abs(y), 1.5), y);
-    omega = Math.copySign(Math.pow(Math.abs(omega), 1.5), omega);
+    x = shapeAxis(x);
+    y = shapeAxis(y);
+    omega = shapeAxis(omega);
 
     // Direction smoothing - prevents steering micro-adjustments during slow movement
     double translationMagnitude = Math.hypot(x, y);
@@ -86,14 +86,10 @@ public class DriveWithJoysticks extends Command {
     }
 
     // Desaturate combined translation + rotation to prevent module over-speed
-    double combinedMagnitude = Math.hypot(translationMagnitude, omega);
-    
-    if (combinedMagnitude > 1.0) {
-      double scale = 1.0 / combinedMagnitude; // Scale down to keep magnitude at 1.0
-      x *= scale;
-      y *= scale;
-      omega *= scale;
-    }
+    DesaturatedSpeeds desaturated = desaturate(x, y, omega);
+    x = desaturated.x();
+    y = desaturated.y();
+    omega = desaturated.omega();
 
     // Convert normalized inputs to m/s and rad/s
     double xMetersPerSec = x * MAX_TRANSLATION_SPEED_MPS;
@@ -116,5 +112,26 @@ public class DriveWithJoysticks extends Command {
   @Override
   public void end(boolean interrupted) {
     driveSubsystem.drive(0.0, 0.0, 0.0, true); // Stop robot when command ends
+  }
+
+  // x^1.5 response curve, pulled out so it can be unit tested independent of a controller.
+  static double shapeAxis(double raw) {
+    return Math.copySign(Math.pow(Math.abs(raw), 1.5), raw);
+  }
+
+  // Result of desaturate() - x/y/omega scaled down together so combined magnitude stays <= 1.0.
+  record DesaturatedSpeeds(double x, double y, double omega) {}
+
+  // Scales x/y/omega down together if their combined magnitude exceeds 1.0, so translation
+  // and rotation never combine to command a module speed above what it can actually do.
+  static DesaturatedSpeeds desaturate(double x, double y, double omega) {
+    double translationMagnitude = Math.hypot(x, y);
+    double combinedMagnitude = Math.hypot(translationMagnitude, omega);
+
+    if (combinedMagnitude > 1.0) {
+      double scale = 1.0 / combinedMagnitude; // Scale down to keep magnitude at 1.0
+      return new DesaturatedSpeeds(x * scale, y * scale, omega * scale);
+    }
+    return new DesaturatedSpeeds(x, y, omega);
   }
 }

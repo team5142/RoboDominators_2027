@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.subsystems.QuestNavSubsystem;
+import frc.robot.util.FieldUtil;
 import frc.robot.util.SmartLogger;
 import org.littletonrobotics.junction.Logger;
 import java.io.BufferedReader;
@@ -225,12 +226,9 @@ public class PoseInitializer {
 
       Pose2d pose = new Pose2d(x, y, Rotation2d.fromDegrees(rotDeg));
 
-      // Paths are authored on blue side. Rotate 180 deg around field center for red.
+      // Paths are authored on blue side - mirror to red using the shared field-mirroring math.
       if (isRed) {
-        pose = new Pose2d(
-            FIELD_LENGTH_METERS - x,
-            FIELD_WIDTH_METERS - y,
-            Rotation2d.fromDegrees(rotDeg + 180.0));
+        pose = FieldUtil.mirrorPoseForRed(pose);
       }
 
       Logger.recordOutput("PoseInitializer/AutoStartPose", pose);

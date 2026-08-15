@@ -26,6 +26,7 @@ import frc.robot.commands.drive.DriveWithJoysticks;
 import frc.robot.commands.drive.SmartDriveToPosition;
 import frc.robot.commands.util.SetStartingPoseCommand;
 import frc.robot.subsystems.*;
+import frc.robot.util.FieldUtil;
 import frc.robot.util.SmartLogger;
 import frc.robot.util.TouchscreenInterface;
 
@@ -208,10 +209,7 @@ public class RobotContainer {
           if (seed == null) seed = Constants.StartingPositions.SHOT_SEED_2M;
           boolean seedIsRed = isRedAlliance();
           if (seedIsRed) {
-            seed = new Pose2d(
-                Constants.Field.FIELD_LENGTH_METERS - seed.getX(),
-                Constants.Field.FIELD_WIDTH_METERS  - seed.getY(),
-                seed.getRotation().plus(edu.wpi.first.math.geometry.Rotation2d.fromDegrees(180.0)));
+            seed = FieldUtil.mirrorPoseForRed(seed);
           }
           // Determine perspective from the final pose X so it's correct even if cachedAlliance
           // hasn't updated yet. X > midpoint means the robot is on the red side of the field.

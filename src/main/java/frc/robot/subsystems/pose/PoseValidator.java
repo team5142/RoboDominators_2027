@@ -52,10 +52,9 @@ public class PoseValidator {
     
     double posError = currentPose.getTranslation().getDistance(expectedPose.getTranslation());
     double rotError = Math.abs(currentPose.getRotation().minus(expectedPose.getRotation()).getDegrees());
-    
-    boolean withinTolerance = 
-        posError < STARTING_POSE_TOLERANCE_METERS && 
-        rotError < STARTING_POSE_TOLERANCE_DEGREES;
+
+    boolean withinTolerance = isWithinTolerance(
+        posError, rotError, STARTING_POSE_TOLERANCE_METERS, STARTING_POSE_TOLERANCE_DEGREES);
     
     SmartDashboard.putString("Pose/Validation", withinTolerance ? "ALIGNED" : "NOT ALIGNED");
     SmartDashboard.putBoolean("Pose/AutoAligned", withinTolerance);
@@ -71,6 +70,13 @@ public class PoseValidator {
     Logger.recordOutput("PoseValidation/ExpectedPose", expectedPose);
   }
   
+  // Pure comparison pulled out of periodicValidation() so it can be unit tested directly.
+  static boolean isWithinTolerance(
+      double posErrorMeters, double rotErrorDegrees,
+      double posToleranceMeters, double rotToleranceDegrees) {
+    return posErrorMeters < posToleranceMeters && rotErrorDegrees < rotToleranceDegrees;
+  }
+
   private Pose2d getExpectedAutoStartPose() {
     if (autoChooser == null || poseInitializer == null) return null;
 

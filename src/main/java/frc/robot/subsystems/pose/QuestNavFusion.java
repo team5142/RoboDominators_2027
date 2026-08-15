@@ -336,7 +336,7 @@ public class QuestNavFusion {
       Logger.recordOutput("PoseEstimator/QuestNav/EstimatedPose", estimatedPose);
     }
 
-    if (translationError > TELEPORT_TRANSLATION_METERS || rotationError > TELEPORT_ROTATION_RADIANS) {
+    if (exceedsTeleportThreshold(translationError, rotationError, TELEPORT_TRANSLATION_METERS, TELEPORT_ROTATION_RADIANS)) {
       consecutiveTeleports++;
       
       if (consecutiveTeleports > 3 && healthState != QuestHealthState.UNHEALTHY) {
@@ -370,7 +370,7 @@ public class QuestNavFusion {
         Logger.recordOutput("PoseEstimator/QuestNav/ImpliedOmega", impliedOmega);
       }
 
-      if (impliedSpeed > maxSpeed || impliedOmega > maxOmega) {
+      if (exceedsImpliedVelocityThreshold(impliedSpeed, impliedOmega, maxSpeed, maxOmega)) {
         consecutiveTeleports++;
         
         if (consecutiveTeleports > 3 && healthState != QuestHealthState.UNHEALTHY) {
@@ -394,6 +394,29 @@ public class QuestNavFusion {
     consecutiveTeleports = 0;
     if (logCounter % 10 == 0) Logger.recordOutput("PoseEstimator/QuestNav/TeleportCheck", "PASSED");
     return true;
+  }
+
+  // Pure comparison pulled out of teleportGatePass so it can be unit tested directly,
+  // without needing a real DriveSubsystem/PoseEstimatorSubsystem/Logger to construct.
+  static boolean exceedsTeleportThreshold(
+      double translationErrorMeters, double rotationErrorRadians,
+      double translationLimitMeters, double rotationLimitRadians) {
+    return translationErrorMeters > translationLimitMeters
+        || rotationErrorRadians > rotationLimitRadians;
+  }
+
+  // Pure comparison pulled out of teleportGatePass's implied-velocity check.
+  static boolean exceedsImpliedVelocityThreshold(
+      double impliedSpeedMps, double impliedOmegaRadPerSec,
+      double maxSpeedMps, double maxOmegaRadPerSec) {
+    return impliedSpeedMps > maxSpeedMps || impliedOmegaRadPerSec > maxOmegaRadPerSec;
+  }
+
+  // Pure comparison pulled out of velocityGatePass so it can be unit tested directly.
+  static boolean withinVelocityGate(
+      double linearSpeedMps, double angularSpeedRadPerSec,
+      double maxLinearMps, double maxAngularRadPerSec) {
+    return linearSpeedMps <= maxLinearMps && angularSpeedRadPerSec <= maxAngularRadPerSec;
   }
 
   private boolean isMovingFast() {
@@ -609,17 +632,17 @@ public class QuestNavFusion {
     double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
     double angularSpeed = Math.abs(speeds.omegaRadiansPerSecond);
 
-    boolean linearOk = linearSpeed <= MAX_LINEAR_SPEED_FOR_FUSION_MPS;
-    boolean angularOk = angularSpeed <= MAX_ANGULAR_SPEED_FOR_FUSION_RAD_PER_SEC;
+    boolean passed = withinVelocityGate(
+        linearSpeed, angularSpeed, MAX_LINEAR_SPEED_FOR_FUSION_MPS, MAX_ANGULAR_SPEED_FOR_FUSION_RAD_PER_SEC);
 
     // Throttle to ~5Hz - this runs every loop and these values change slowly
     if (logCounter % 10 == 0) {
       Logger.recordOutput("PoseEstimator/QuestNav/VelocityGate/LinearSpeed", linearSpeed);
       Logger.recordOutput("PoseEstimator/QuestNav/VelocityGate/AngularSpeed", angularSpeed);
-      Logger.recordOutput("PoseEstimator/QuestNav/VelocityGate/Passed", linearOk && angularOk);
+      Logger.recordOutput("PoseEstimator/QuestNav/VelocityGate/Passed", passed);
     }
 
-    return linearOk && angularOk;
+    return passed;
   }
 
   public Matrix<N3, N1> getInitialAlignmentStdDevs() {
