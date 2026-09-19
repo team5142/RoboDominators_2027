@@ -24,6 +24,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.commands.drive.DriveWithJoysticks;
 import frc.robot.commands.drive.SmartDriveToPosition;
 import frc.robot.commands.util.SetStartingPoseCommand;
+import frc.robot.route.BLineCoarseRouteProvider;
+import frc.robot.route.CoarseRouteProvider;
+import frc.robot.route.CoarseRouteProviderType;
 import frc.robot.route.PathPlannerCoarseRouteProvider;
 import frc.robot.subsystems.*;
 import frc.robot.util.FieldUtil;
@@ -38,6 +41,11 @@ public class RobotContainer {
   private static final boolean ENABLE_CONSOLE_LOGGING = !COMPETITION_MODE;
   private static final boolean USE_TOUCHSCREEN_OPERATOR = false;
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
+  // Which CoarseRouteProvider SmartDriveToPosition's fast-approach phase uses. PathPlanner
+  // is the proven default; BLine is evaluation-only (see BLineCoarseRouteProvider) and has
+  // not yet been validated in simulation or on the robot - functional motion testing is
+  // still pending before it should be selected outside of a deliberate test session.
+  private static final CoarseRouteProviderType ACTIVE_COARSE_ROUTE_PROVIDER = CoarseRouteProviderType.PATHPLANNER;
   private static final double AUTO_SEED_POS_TOL_METERS = 0.20;
   private static final double AUTO_SEED_ROT_TOL_DEG = 10.0;
 
@@ -96,7 +104,7 @@ public class RobotContainer {
 
     poseEstimator.setTagVisionSubsystem(tagVisionSubsystem); // Cross-wire vision into pose estimator
     smartDriveToPosition = new SmartDriveToPosition(
-        poseEstimator, robotState, driveSubsystem, questNav, new PathPlannerCoarseRouteProvider());
+        poseEstimator, robotState, driveSubsystem, questNav, createCoarseRouteProvider());
 
     configurePathPlanner();
     configureDefaultCommands();
@@ -127,8 +135,20 @@ public class RobotContainer {
     shotSeedChooser.addOption("BACK WALL RIGHT (4.59m)", Constants.StartingPositions.SHOT_SEED_BACK_WALL_RIGHT);
     shotSeedChooser.addOption("RIGHT CORNER (4.59m)", Constants.StartingPositions.SHOT_SEED_RIGHT_CORNER);
     SmartDashboard.putData("Shot Seed Pose", shotSeedChooser);
-    
+
     SmartLogger.logConsole("RobotContainer initialized - all subsystems ready", "Init Complete", 5);
+  }
+
+  // Builds the CoarseRouteProvider SmartDriveToPosition's fast-approach phase uses,
+  // per ACTIVE_COARSE_ROUTE_PROVIDER.
+  private CoarseRouteProvider createCoarseRouteProvider() {
+    switch (ACTIVE_COARSE_ROUTE_PROVIDER) {
+      case BLINE:
+        return new BLineCoarseRouteProvider(driveSubsystem, poseEstimator);
+      case PATHPLANNER:
+      default:
+        return new PathPlannerCoarseRouteProvider();
+    }
   }
 
   // Configure PathPlanner auto builder
