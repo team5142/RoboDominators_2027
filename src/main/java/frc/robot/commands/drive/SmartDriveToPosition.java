@@ -4,47 +4,58 @@ package frc.robot.commands.drive;
 // 1. Live test the forceAcceptQuestNavPose() path in phase 2 - confirm the Quest lock
 //    actually improves final position accuracy vs skipping it.
 
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.RobotState;
+import frc.robot.route.CoarseRouteProvider;
+import frc.robot.route.RouteConstraints;
+import frc.robot.route.RouteRequest;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.PoseEstimatorSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 import frc.robot.util.SmartLogger;
 
-// Builds the two-phase SmartDrive command (PathPlanner pathfind, then QuestNav-locked
+// Builds the two-phase SmartDrive command (coarse route provider, then QuestNav-locked
 // AutoPilot precision). Owned as a single instance by RobotContainer and shared with
 // anything else (e.g. TouchscreenInterface) that needs to build these commands.
 public class SmartDriveToPosition {
   private static final double PATHFINDER_TIMEOUT_S = 8.0;
   private static final double QUESTNAV_WAIT_TIMEOUT_S = 3.0;
 
+  // 3.5 m/s, 3.5 m/s^2, 540 deg/s, 720 deg/s^2 - fast-approach limits for the coarse route.
+  private static final RouteConstraints FAST_APPROACH_CONSTRAINTS = new RouteConstraints(
+      3.5,
+      3.5,
+      Math.toRadians(540.0),
+      Math.toRadians(720.0));
+
   private final PoseEstimatorSubsystem poseEstimator;
   private final RobotState robotState;
   private final DriveSubsystem driveSubsystem;
   private final QuestNavSubsystem questNavSubsystem;
+  private final CoarseRouteProvider routeProvider;
 
   public SmartDriveToPosition(
       PoseEstimatorSubsystem poseEstimator,
       RobotState robotState,
       DriveSubsystem driveSubsystem,
-      QuestNavSubsystem questNavSubsystem) {
+      QuestNavSubsystem questNavSubsystem,
+      CoarseRouteProvider routeProvider) {
     this.poseEstimator = poseEstimator;
     this.robotState = robotState;
     this.driveSubsystem = driveSubsystem;
     this.questNavSubsystem = questNavSubsystem;
+    this.routeProvider = routeProvider;
   }
 
   public Command create(Pose2d stagingPose, Pose2d finalTargetPose) {
     SmartLogger.logReplay("SmartDrive/StagingPose", stagingPose);
     SmartLogger.logReplay("SmartDrive/FinalTargetPose", finalTargetPose);
 
-    Command toStaging = AutoBuilder.pathfindToPose(stagingPose, createPathPlannerConstraints()).withTimeout(PATHFINDER_TIMEOUT_S);
+    Command toStaging = fastApproachCommand(stagingPose);
 
     return new SequentialCommandGroup(
         Commands.runOnce(() -> {
@@ -67,6 +78,14 @@ public class SmartDriveToPosition {
       SmartLogger.logReplay("SmartDrive/Status", interrupted ? "Interrupted" : "Complete");
       SmartLogger.logReplay("SmartDrive/Interrupted", interrupted);
     });
+  }
+
+  // Package-private so tests can check the fast-approach RouteRequest without building the
+  // full sequence (which requires live DriveSubsystem/PoseEstimatorSubsystem instances).
+  Command fastApproachCommand(Pose2d stagingPose) {
+    return routeProvider
+        .createRouteCommand(new RouteRequest(stagingPose, FAST_APPROACH_CONSTRAINTS))
+        .withTimeout(PATHFINDER_TIMEOUT_S);
   }
 
   public Command createPrecisionPhase(Pose2d finalTargetPose) {
@@ -144,14 +163,5 @@ public class SmartDriveToPosition {
         SmartLogger.logReplay("SmartDrive/PrecisionInterrupted", true);
       }
     });
-  }
-
-  private static PathConstraints createPathPlannerConstraints() {
-    // 3.5 m/s, 3.5 m/s^2, 540 deg/s, 720 deg/s^2
-    return new PathConstraints(
-        3.5,
-        3.5,
-        Math.toRadians(540.0),
-        Math.toRadians(720.0));
   }
 }
