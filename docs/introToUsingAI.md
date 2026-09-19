@@ -27,6 +27,12 @@ For this exercise:
 
 Always follow `AGENTS.md` and `.github/copilot-instructions.md`.
 
+## Student Workspace Check
+
+The students must work in a fresh student instance created from the PathPlanner-only baseline lineage. They must not use, copy from, or continue the separate mentor/reference BLine implementation.
+
+Before beginning student work, verify the current branch and commit history. Confirm that commit `b251df4b24e32ad3a5557c2f9c2bb2ec58dc7cd2` is present and that the workspace does not already contain the mentor/reference BLine solution. If either condition is unclear, stop and ask the mentor rather than changing code.
+
 ## How to Work With Students
 
 Work on one small, approved task at a time.
