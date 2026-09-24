@@ -24,6 +24,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.commands.drive.DriveWithJoysticks;
 import frc.robot.commands.drive.SmartDriveToPosition;
 import frc.robot.commands.util.SetStartingPoseCommand;
+import frc.robot.route.BLineCoarseRouteProvider;
 import frc.robot.route.PathPlannerCoarseRouteProvider;
 import frc.robot.subsystems.*;
 import frc.robot.util.FieldUtil;
@@ -96,7 +97,7 @@ public class RobotContainer {
 
     poseEstimator.setTagVisionSubsystem(tagVisionSubsystem); // Cross-wire vision into pose estimator
     smartDriveToPosition = new SmartDriveToPosition(
-        poseEstimator, robotState, driveSubsystem, questNav, new PathPlannerCoarseRouteProvider());
+        poseEstimator, robotState, driveSubsystem, questNav, new BLineCoarseRouteProvider());
 
     configurePathPlanner();
     configureDefaultCommands();

@@ -24,7 +24,7 @@ import edu.wpi.first.cscore.HttpCamera;
 import edu.wpi.first.cscore.MjpegServer;
 import au.grapplerobotics.CanBridge;
 import frc.robot.util.LogSpaceMonitor;
-
+import frc.robot.lib.BLine.Path;
 // Main robot class - runs on boot, manages all modes (auto/teleop/test), 20ms loop
 public class Robot extends LoggedRobot {
   
@@ -47,6 +47,15 @@ public class Robot extends LoggedRobot {
   // Runs ONCE at robot boot - setup logging and create subsystems
   @Override
   public void robotInit() {
+    Path.setDefaultGlobalConstraints(new Path.DefaultGlobalConstraints(
+    3.5,   // maximum translation velocity (m/s)
+    3.5,  // maximum translation acceleration (m/s²)
+    540.0, // maximum rotation velocity (deg/s)
+    720, // maximum degree rotation
+    0.03,  // end translation tolerance (m) 
+    2.0,   // end rotation tolerance (deg)
+    0.45   // intermediate handoff radius (m)
+));
     CanBridge.runTCP(); // allows GrappleHook to connect for LaserCAN tuning
     com.ctre.phoenix6.SignalLogger.enableAutoLogging(false); // .hoot files not needed — AKit .wpilog is our log format
     StatusLogger.disableAutoLogging();

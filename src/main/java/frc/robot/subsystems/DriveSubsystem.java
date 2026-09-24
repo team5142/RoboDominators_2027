@@ -11,17 +11,18 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.RobotState;
 import frc.robot.util.SmartLogger;
 import org.littletonrobotics.junction.Logger;
+import frc.robot.route.RouteConstraints;
 
 // Swerve drivetrain - extends CTRE's CommandSwerveDrivetrain with GyroSubsystem integration.
 // AutoPilot logic lives in commands, not here.
 public class DriveSubsystem extends CommandSwerveDrivetrain {
   private final GyroSubsystem gyro;
   private final RobotState robotState;
-  
+  public Pose2d currentPose;
   // Swerve requests for different drive modes
   private final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric();
   private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric();
-
+  
   private int logCounter = 0;
 
   public DriveSubsystem(RobotState robotState, GyroSubsystem gyro) {
@@ -35,6 +36,7 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
     
     this.robotState = robotState;
     this.gyro = gyro;
+    this.currentPose=currentPose;
   }
 
   @Override
@@ -88,7 +90,7 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
   public void resetGyroToZero() {
     gyro.setHeading(0.0);
   }
-
+  public Pose2d getRobotPose() {return currentPose;}
   // Seeds the Pigeon to a specific heading so CTRE field-centric math uses the correct offset.
   public void setGyroHeading(Rotation2d heading) {
     gyro.setHeading(heading.getDegrees());
@@ -231,7 +233,7 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
   private void selectSteerRoutine() {
     m_sysIdRoutineToApply = m_sysIdRoutineSteer;
   }
-
+  
   private void selectRotationRoutine() {
     m_sysIdRoutineToApply = m_sysIdRoutineRotation;
   }
