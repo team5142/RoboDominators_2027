@@ -587,6 +587,32 @@ public final class Constants {
     public static final double SHOOT_IN_PLACE_SHOOT_SECONDS  = 8.0; // feed window for ~8 balls
   }
 
+  // BLine-Lib coarse-route tuning (evaluation only, see BLineCoarseRouteProvider).
+  // A separate controller from PathPlanner's - these gains are NOT reused from Auto above
+  // and are untuned starting points, not measured values. Tune on the robot before relying on them.
+  public static final class BLineAuto {
+    public static final double TRANSLATION_KP = 2.5;
+    public static final double TRANSLATION_KI = 0.0;
+    public static final double TRANSLATION_KD = 0.0;
+
+    public static final double ROTATION_KP = 3.5;
+    public static final double ROTATION_KI = 0.0;
+    public static final double ROTATION_KD = 0.0;
+
+    public static final double CROSS_TRACK_KP = 1.0;
+    public static final double CROSS_TRACK_KI = 0.0;
+    public static final double CROSS_TRACK_KD = 0.0;
+
+    // Process-wide fallback constraints BLine uses when a path doesn't set its own.
+    public static final double DEFAULT_MAX_VELOCITY_MPS = 3.5;
+    public static final double DEFAULT_MAX_ACCELERATION_MPS2 = 3.5;
+    public static final double DEFAULT_MAX_VELOCITY_DEG_PER_SEC = 540.0;
+    public static final double DEFAULT_MAX_ACCELERATION_DEG_PER_SEC2 = 720.0;
+    public static final double DEFAULT_END_TRANSLATION_TOLERANCE_METERS = 0.05;
+    public static final double DEFAULT_END_ROTATION_TOLERANCE_DEG = 2.0;
+    public static final double DEFAULT_INTERMEDIATE_HANDOFF_RADIUS_METERS = 0.45;
+  }
+
   // Field positions (all blue alliance - red is mirrored automatically)
   public static final class StartingPositions {
     
