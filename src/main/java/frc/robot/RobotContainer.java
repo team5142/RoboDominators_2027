@@ -28,6 +28,7 @@ import frc.robot.subsystems.*;
 import frc.robot.util.FieldUtil;
 import frc.robot.util.SmartLogger;
 import frc.robot.util.TouchscreenInterface;
+import frc.robot.BlineAutos;
 
 // Wires up robot hardware, controllers, and commands
 // To grab latest 10 logs and delete them: run .\scripts\storelogs.bat
@@ -105,8 +106,8 @@ public class RobotContainer {
       configureTouchscreenInterface();
     }
     
-    autoChooser = AutoBuilder.buildAutoChooser(""); // Scans deploy/pathplanner/autos/ for named autos
-    autoChooser.setDefaultOption("Do Nothing", Commands.none().withName("Do Nothing"));
+    autoChooser = BlineAutos.AutoChoices(driveSubsystem, poseEstimator); // creates the new Auto Choices widget 
+    
     SmartDashboard.putData("Auto Chooser", autoChooser); // Sends chooser widget to dashboard
     robotState.setSysIdMode(SYSID_MODE);
     poseEstimator.setAutoChooser(autoChooser); // Lets pose estimator read auto start poses

@@ -24,7 +24,7 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
 
   private int logCounter = 0;
 
-  public DriveSubsystem(RobotState robotState, GyroSubsystem gyro) {
+  public DriveSubsystem(RobotState robotState2, GyroSubsystem gyro) {
     super(
         frc.robot.generated.TunerConstants.DrivetrainConstants,
         frc.robot.generated.TunerConstants.FrontLeft,
@@ -33,7 +33,7 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
         frc.robot.generated.TunerConstants.BackRight
     );
     
-    this.robotState = robotState;
+    this.robotState = robotState2;
     this.gyro = gyro;
   }
 
