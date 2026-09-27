@@ -40,7 +40,7 @@ public class RobotContainer {
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
   private static final double AUTO_SEED_POS_TOL_METERS = 0.20;
   private static final double AUTO_SEED_ROT_TOL_DEG = 10.0;
-
+  public BlineAutos blineAutos;
   // Driver Xbox controller on USB port defined in Constants
   private final XboxController driverController = new XboxController(DRIVER_CONTROLLER_PORT);
   // Operator Xbox controller on the next USB slot (port 1)
@@ -87,7 +87,7 @@ public class RobotContainer {
     poseEstimator = new PoseEstimatorSubsystem(driveSubsystem, this.robotState, questNav);
     tagVisionSubsystem = new TagVisionSubsystem(poseEstimator);
     ledSubsystem = new LEDSubsystem(this.robotState);
-
+    blineAutos=new BlineAutos(driveSubsystem, poseEstimator);
     updateAllianceFromDriverStation(); // Sets robotState's alliance - must happen before PathPlanner config
 
     if (COMPETITION_MODE) {
@@ -106,7 +106,7 @@ public class RobotContainer {
       configureTouchscreenInterface();
     }
     
-    autoChooser = BlineAutos.AutoChoices(driveSubsystem, poseEstimator); // creates the new Auto Choices widget 
+    autoChooser = BlineAutos.AutoChoices(); // creates the new Auto Choices widget 
     
     SmartDashboard.putData("Auto Chooser", autoChooser); // Sends chooser widget to dashboard
     robotState.setSysIdMode(SYSID_MODE);

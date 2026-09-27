@@ -17,25 +17,33 @@ import frc.robot.subsystems.GyroSubsystem;
 public class BlineAutos {
         public static SendableChooser<Command> chooser= new SendableChooser<>();
         public static Path doNothing;
-        public DriveSubsystem driveSubsystem;
-        public PoseEstimatorSubsystem poseEstimator;
         public QuestNavSubsystem questNavSubsystem;
         public GyroSubsystem gyroSubsystem;
         public static Path samplePath;
-        
-    public static SendableChooser<Command> AutoChoices(DriveSubsystem driveSubsystem, PoseEstimatorSubsystem poseEstimator) {
-        doNothing = new Path ("doNothing"); // create default nothing path
-        samplePath= new Path ("SamplePath"); // create placeholder path
-        FollowPath.Builder bLineBuilder = new FollowPath.Builder(
-            driveSubsystem,
-            poseEstimator::getEstimatedPose,
-            driveSubsystem::getRobotRelativeSpeeds,
-            driveSubsystem::driveRobotRelative,
-            new PIDController(0, 0, 0),
-            new PIDController(0, 0, 0),
-            new PIDController(0, 0, 0)); // create the global builder for each path
-        chooser.setDefaultOption("doNothing", bLineBuilder.build(doNothing));
-        chooser.addOption("samplePath",bLineBuilder.build(samplePath));
-        return chooser;
+        public static FollowPath.Builder bLineBuilder;
+        public static SendableChooser<Command> fallBackChooser;
+            public BlineAutos(DriveSubsystem driveSubsystem, PoseEstimatorSubsystem poseEstimator) { 
+                final SendableChooser<Command> fallBackChooser= new SendableChooser<>();
+                fallBackChooser.setDefaultOption("errorOccured",Commands.none());
+                doNothing=new Path("doNothing"); // create default nothing path from file
+                samplePath=new Path("SamplePath"); // create placeholder path from file
+                bLineBuilder = new FollowPath.Builder(
+                    driveSubsystem,
+                    poseEstimator::getEstimatedPose,
+                    driveSubsystem::getRobotRelativeSpeeds,
+                    driveSubsystem::driveRobotRelative,
+                    new PIDController(0, 0, 0),
+                    new PIDController(0, 0, 0),
+                    new PIDController(0, 0, 0)); // create the global builder for each path
+            }
+            public static SendableChooser<Command> AutoChoices() {
+                if (bLineBuilder != null) {
+                chooser.setDefaultOption("doNothing", bLineBuilder.build(doNothing));
+                chooser.addOption("samplePath",bLineBuilder.build(samplePath)); 
+                return chooser;}
+                else {return fallBackChooser;}  
+                
+                }
+
     }
-}
+
