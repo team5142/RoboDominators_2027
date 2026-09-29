@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import org.littletonrobotics.junction.Logger;
 import frc.robot.util.SmartLogger;
 
@@ -19,10 +18,10 @@ public class PoseValidator {
   // Start at -INTERVAL so first validation fires one full interval after boot (lets odometry settle).
   private double lastValidationTime = -VALIDATION_INTERVAL_SECONDS;
   
-  private SendableChooser<Command> autoChooser;
+  private SendableChooser<String> autoChooser;
   private PoseInitializer poseInitializer;
-  
-  public void setAutoChooser(SendableChooser<Command> autoChooser) {
+
+  public void setAutoChooser(SendableChooser<String> autoChooser) {
     this.autoChooser = autoChooser;
   }
 
@@ -81,10 +80,9 @@ public class PoseValidator {
     if (autoChooser == null || poseInitializer == null) return null;
 
     try {
-      Command selectedAuto = autoChooser.getSelected();
-      if (selectedAuto == null) return null;
+      String autoName = autoChooser.getSelected();
+      if (autoName == null) return null;
 
-      String autoName = selectedAuto.getName();
       Pose2d pose = poseInitializer.getStartPoseForAutoName(autoName);
 
       if (pose == null) {

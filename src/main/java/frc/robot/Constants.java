@@ -587,7 +587,7 @@ public final class Constants {
     public static final double SHOOT_IN_PLACE_SHOOT_SECONDS  = 8.0; // feed window for ~8 balls
   }
 
-  // BLine-Lib coarse-route tuning (evaluation only, see BLineCoarseRouteProvider).
+  // BLine-Lib autonomous-routine tuning, see BLineAutoRoutines.
   // A separate controller from PathPlanner's - these gains are NOT reused from Auto above
   // and are untuned starting points, not measured values. Tune on the robot before relying on them.
   public static final class BLineAuto {

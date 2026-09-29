@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.geometry.Rotation2d;
+import frc.robot.auto.BLineAutoRoutines;
 import frc.robot.commands.drive.DriveWithJoysticks;
 import frc.robot.commands.drive.SmartDriveToPosition;
 import frc.robot.commands.util.SetStartingPoseCommand;
@@ -38,6 +39,9 @@ public class RobotContainer {
   private static final boolean ENABLE_CONSOLE_LOGGING = !COMPETITION_MODE;
   private static final boolean USE_TOUCHSCREEN_OPERATOR = false;
   private static final boolean SYSID_MODE = false; // Phoenix Tuner X characterization mode
+  // Shown as the "no auto" option in the dashboard chooser - must match exactly
+  // everywhere it is compared, since the chooser stores plain routine-name strings.
+  private static final String DO_NOTHING_AUTO_NAME = "Do Nothing";
   private static final double AUTO_SEED_POS_TOL_METERS = 0.20;
   private static final double AUTO_SEED_ROT_TOL_DEG = 10.0;
 
@@ -61,10 +65,11 @@ public class RobotContainer {
   final TagVisionSubsystem tagVisionSubsystem;
   public final LEDSubsystem ledSubsystem;
   final SmartDriveToPosition smartDriveToPosition;
+  final BLineAutoRoutines blineAutoRoutines;
 
   // Autonomous chooser shown on dashboard; selection drives pose preview and auto init
-  private final SendableChooser<Command> autoChooser;
-  private Command lastSelectedAuto = null; // Track selection for preview updates
+  private final SendableChooser<String> autoChooser;
+  private String lastSelectedAuto = null; // Track selection for preview updates
 
   // Shot seed pose chooser — shown in Elastic as a dropdown; START button reads the selection.
   private final SendableChooser<Pose2d> shotSeedChooser = new SendableChooser<>();
@@ -107,11 +112,19 @@ public class RobotContainer {
       configureTouchscreenInterface();
     }
     
-    autoChooser = AutoBuilder.buildAutoChooser(""); // Scans deploy/pathplanner/autos/ for named autos
-    autoChooser.setDefaultOption("Do Nothing", Commands.none().withName("Do Nothing"));
+    // Builds every named BLine autonomous routine once at boot (paths, event triggers,
+    // starting poses). See BLineAutoRoutines for what a routine actually is.
+    blineAutoRoutines = new BLineAutoRoutines(driveSubsystem, poseEstimator, ledSubsystem);
+
+    autoChooser = new SendableChooser<>();
+    autoChooser.setDefaultOption(DO_NOTHING_AUTO_NAME, DO_NOTHING_AUTO_NAME);
+    for (String routineName : blineAutoRoutines.names()) {
+      autoChooser.addOption(routineName, routineName);
+    }
     SmartDashboard.putData("Auto Chooser", autoChooser); // Sends chooser widget to dashboard
     robotState.setSysIdMode(SYSID_MODE);
     poseEstimator.setAutoChooser(autoChooser); // Lets pose estimator read auto start poses
+    poseEstimator.getPoseInitializer().setAutoRoutines(blineAutoRoutines); // Lets pose estimator look up start poses by routine name
 
     shotSeedChooser.setDefaultOption("HUBCLOSE (1.28m)", Constants.StartingPositions.SHOT_SEED_HUBCLOSE);
     shotSeedChooser.addOption("HUB 1.7M (1.67m)", Constants.StartingPositions.SHOT_SEED_HUB1_7M);
@@ -230,9 +243,12 @@ public class RobotContainer {
   }
 
   // Called when auto starts
-  public Command getAutonomousCommand() { 
-    Command selectedAuto = autoChooser.getSelected();
-    return (selectedAuto != null) ? wrapPathWithLogging(selectedAuto) : selectedAuto;
+  public Command getAutonomousCommand() {
+    String selectedName = autoChooser.getSelected();
+    if (selectedName == null || DO_NOTHING_AUTO_NAME.equals(selectedName)) {
+      return Commands.none();
+    }
+    return wrapPathWithLogging(selectedName, blineAutoRoutines.commandFor(selectedName));
   }
 
   public void onTeleopInit() {
@@ -249,24 +265,18 @@ public class RobotContainer {
     SmartLogger.logConsole("Pose reset to: " + SmartLogger.formatPose(pose));
   }
 
-  // Add start/end logging to auto paths
-  private Command wrapPathWithLogging(Command pathCommand) {
-    String pathName = (pathCommand.getName() != null && !pathCommand.getName().isEmpty()) 
-        ? pathCommand.getName() 
-        : "Unknown Path";
-    
-    final String finalPathName = pathName;
-    
-    return pathCommand
+  // Add start/end logging to a BLine autonomous routine's command
+  private Command wrapPathWithLogging(String routineName, Command routineCommand) {
+    return routineCommand
         .beforeStarting(() -> {
           Pose2d startPose = poseEstimator.getEstimatedPose();
-          SmartLogger.logConsole("Segment: " + finalPathName + " | Start: " + SmartLogger.formatPose(startPose), "Path Start");
-          SmartLogger.logReplay("Auto/CurrentSegment", finalPathName);
+          SmartLogger.logConsole("Segment: " + routineName + " | Start: " + SmartLogger.formatPose(startPose), "Path Start");
+          SmartLogger.logReplay("Auto/CurrentSegment", routineName);
           SmartLogger.logReplay("Auto/SegmentStart", startPose);
         })
         .finallyDo((interrupted) -> {
           Pose2d endPose = poseEstimator.getEstimatedPose();
-          SmartLogger.logConsole("Segment: " + finalPathName + " | End: " + SmartLogger.formatPose(endPose) + " | Interrupted: " + interrupted, "Path End");
+          SmartLogger.logConsole("Segment: " + routineName + " | End: " + SmartLogger.formatPose(endPose) + " | Interrupted: " + interrupted, "Path End");
           SmartLogger.logReplay("Auto/SegmentEnd", endPose);
           SmartLogger.logReplay("Auto/SegmentInterrupted", interrupted);
         });
@@ -313,18 +323,17 @@ public class RobotContainer {
   // directly (not a background thread) so there's no latency window between the driver
   // changing the dropdown and the pose actually updating.
   private void updateAutoPreview() {
-    Command selectedAuto = autoChooser.getSelected();
+    String selectedName = autoChooser.getSelected();
 
     // On first pass after boot, always apply even if the auto hasn't changed, so
     // orientation is correct regardless of prior state.
-    if (selectedAuto == null || (selectedAuto == lastSelectedAuto && bootPreviewApplied)) {
+    if (selectedName == null || (selectedName.equals(lastSelectedAuto) && bootPreviewApplied)) {
       return;
     }
-    lastSelectedAuto = selectedAuto;
+    lastSelectedAuto = selectedName;
     bootPreviewApplied = true;
 
-    String autoName = selectedAuto.getName();
-    Pose2d pose = poseEstimator.getPoseInitializer().getStartPoseForAutoName(autoName);
+    Pose2d pose = poseEstimator.getPoseInitializer().getStartPoseForAutoName(selectedName);
     if (pose == null) {
       return;
     }
@@ -349,7 +358,7 @@ public class RobotContainer {
       questNav.seedToPose(pose);
     }
 
-    SmartLogger.logConsole("Auto: " + autoName + " | Pose: " + SmartLogger.formatPose(pose), "Preview");
+    SmartLogger.logConsole("Auto: " + selectedName + " | Pose: " + SmartLogger.formatPose(pose), "Preview");
     SmartLogger.logReplay("Auto/PreviewPose", pose);
   }
 
