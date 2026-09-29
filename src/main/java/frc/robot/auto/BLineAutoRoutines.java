@@ -2,8 +2,6 @@ package frc.robot.auto;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Constants;
@@ -59,27 +57,16 @@ public class BLineAutoRoutines {
     // mechanism subsystems exist. Do not leave "signal" as the only real trigger.
     FollowPath.registerEventTrigger("signal", Commands.runOnce(() -> ledSubsystem.setPattern(Pattern.GREEN)));
 
-    registerDemoRoutine();
+    registerRoutine("Ethan 2.0", "ethan2point0");
   }
 
-  // TODO: replace with real named routines once BLine Web-authored path JSON exists
-  // under deploy/autos/paths/. Loading a path file that doesn't exist throws at boot
-  // (JsonUtils.loadPath wraps a missing file in a RuntimeException), so this demo is
-  // built entirely from in-code waypoints - it has no file dependency and can never
-  // crash robot startup. It exists only to prove the registry/builder/event mechanism
-  // works end-to-end; it is not a real competition auto.
-  private void registerDemoRoutine() {
-    Pose2d startPose = new Pose2d(new Translation2d(1.0, 1.0), Rotation2d.kZero);
-    Pose2d endPose = new Pose2d(new Translation2d(2.0, 1.0), Rotation2d.kZero);
-
-    Path demoPath = new Path(
-        new Path.Waypoint(startPose),
-        new Path.EventTrigger(0.5, "signal"),
-        new Path.Waypoint(endPose));
-
-    Command demoCommand = BLineCommands.sequence(routeBuilder.build(demoPath));
-
-    routines.put("Demo (placeholder)", new BLineAutoRoutine("Demo (placeholder)", demoCommand, startPose));
+  // Loads a BLine-Web-authored path by name (from deploy/autos/paths/<pathFileName>.json)
+  // and registers it as a chooser-visible routine. Add one call like this per real auto -
+  // this is where a new path file actually becomes selectable on the dashboard.
+  private void registerRoutine(String displayName, String pathFileName) {
+    Path path = new Path(pathFileName);
+    Command command = BLineCommands.sequence(routeBuilder.build(path));
+    routines.put(displayName, new BLineAutoRoutine(displayName, command, path.getStartPose()));
   }
 
   public List<String> names() {
