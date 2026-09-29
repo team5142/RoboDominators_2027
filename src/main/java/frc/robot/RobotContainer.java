@@ -30,6 +30,7 @@ import frc.robot.subsystems.*;
 import frc.robot.util.FieldUtil;
 import frc.robot.util.SmartLogger;
 import frc.robot.util.TouchscreenInterface;
+import java.util.Set;
 
 // Wires up robot hardware, controllers, and commands
 // To grab latest 10 logs and delete them: run .\scripts\storelogs.bat
@@ -229,6 +230,37 @@ public class RobotContainer {
     // BOTH TRIGGERS: Dynamic heading snap — gyro only, safe in emergency mode (no gate needed).
     // Holds a field-relative heading based on zone/position while driver steers with left stick.
 
+    /*
+     * X and B: hold-to-drive to a fixed staging pose near the blue drive-team area,
+     * facing the hub, using PathPlanner's dynamic pathfinding (SmartDriveToPosition).
+     * X is the left face button, B is the right face button on a standard Xbox
+     * controller, matching "left pose" / "right pose" below.
+     *
+     * whileTrue schedules the drive while the button is held and cancels it the
+     * instant the button is released - and the command also ends on its own once
+     * SmartDriveToPosition reports it has reached the target pose, whichever comes
+     * first. Commands.defer builds a brand new SmartDriveToPosition command every
+     * time the button is pressed, so its internal state (QuestNav lock flags, etc.)
+     * never carries over from a previous press.
+     *
+     * The two poses are real, measured field positions (Constants.StartingPositions),
+     * authored in blue-alliance coordinates. allianceAdjustedPose() mirrors them for
+     * red alliance the same way the START button's shot-seed handler already does.
+     */
+    new JoystickButton(driverController, XboxController.Button.kX.value)
+        .whileTrue(Commands.defer(
+            () -> smartDriveToPosition.create(
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_LEFT_BUMP),
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_LEFT_BUMP)),
+            Set.of(driveSubsystem)));
+
+    new JoystickButton(driverController, XboxController.Button.kB.value)
+        .whileTrue(Commands.defer(
+            () -> smartDriveToPosition.create(
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP),
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP)),
+            Set.of(driveSubsystem)));
+
     // ========== END NORMAL OPERATION BUTTONS ==========
 
   }
@@ -263,6 +295,12 @@ public class RobotContainer {
   private void resetPose(Pose2d pose) {
     poseEstimator.resetPose(pose, driveSubsystem.getGyroRotation(), driveSubsystem.getModulePositions());
     SmartLogger.logConsole("Pose reset to: " + SmartLogger.formatPose(pose));
+  }
+
+  // Poses in Constants.StartingPositions are authored in blue-alliance coordinates.
+  // Mirror to red the same way the START button's shot-seed handler already does.
+  private Pose2d allianceAdjustedPose(Pose2d bluePose) {
+    return robotState.getAlliance() == Alliance.Red ? FieldUtil.mirrorPoseForRed(bluePose) : bluePose;
   }
 
   // Add start/end logging to a BLine autonomous routine's command
