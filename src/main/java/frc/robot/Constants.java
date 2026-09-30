@@ -642,7 +642,9 @@ public final class Constants {
     public static final Pose2d SHOT_SEED_HUB1_7M    = new Pose2d(2.94,  4.01,  Rotation2d.fromDegrees(0.0)); // ~1.67m from hub
     public static final Pose2d SHOT_SEED_HUB_RIGHT_ACCURATE = new Pose2d(3.560, 3.850, Rotation2d.fromDegrees(90.0)); // BLUE_REBUILT_HUB_RIGHT_ACCURATE — up against hub facing left
     public static final Pose2d SHOT_SEED_RIGHT_BUMP = new Pose2d(3.620, 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceRight start
+    public static final Pose2d SHOT_SEED_RIGHT_BUMP_STAGING = new Pose2d(3.000, 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceRight start
     public static final Pose2d SHOT_SEED_LEFT_BUMP  = new Pose2d(3.620, Field.FIELD_WIDTH_METERS - 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceLeft start
+     public static final Pose2d SHOT_SEED_LEFT_BUMP_STAGING  = new Pose2d(3.000, Field.FIELD_WIDTH_METERS - 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceLeft start
     public static final Pose2d SHOT_SEED_OUTPOST        = new Pose2d(0.4826, 0.4191, Rotation2d.fromDegrees(0.0)); // BLUE_REBUILT_RIGHT_CORNER / outpost start
     public static final Pose2d SHOT_SEED_BACK_WALL_RIGHT = new Pose2d(0.483, 2.500, Rotation2d.fromDegrees(0.0)); // RIGHT_CORNER measured 2026-03-17
     public static final Pose2d SHOT_SEED_RIGHT_CORNER = new Pose2d(0.483,  2.500,  Rotation2d.fromDegrees(0.0)); // RIGHT_CORNER measured 2026-03-17
@@ -651,7 +653,8 @@ public final class Constants {
     public static final Pose2d SHOT_SEED_3M   = new Pose2d(1.612, 4.022, Rotation2d.fromDegrees(0.0)); // 4.612-3.0
     public static final Pose2d SHOT_SEED_4M   = new Pose2d(0.612, 4.022, Rotation2d.fromDegrees(0.0)); // 4.612-4.0
     public static final Pose2d SHOT_SEED_4_5M = new Pose2d(0.112, 4.022, Rotation2d.fromDegrees(0.0)); // 4.612-4.5
-
+    public static final Pose2d ETHAN_TEST_STAGING = new Pose2d(1.900,5.95,Rotation2d.fromDegrees(180.0));
+    public static final Pose2d ETHAN_TEST = new Pose2d(1.3,5.95,Rotation2d.fromDegrees(180.0));
     // AUTO RESET POSE STAGING
     public static final Pose2d BLUE_AUTO_START_POS_FAR_RIGHT = new Pose2d(5.533, 1.185, Rotation2d.fromDegrees(180.0));
     

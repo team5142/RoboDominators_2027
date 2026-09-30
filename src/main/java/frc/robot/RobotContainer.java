@@ -250,17 +250,22 @@ public class RobotContainer {
     new JoystickButton(driverController, XboxController.Button.kX.value)
         .whileTrue(Commands.defer(
             () -> smartDriveToPosition.create(
-                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_LEFT_BUMP),
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_LEFT_BUMP_STAGING),
                 allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_LEFT_BUMP)),
             Set.of(driveSubsystem)));
 
     new JoystickButton(driverController, XboxController.Button.kB.value)
         .whileTrue(Commands.defer(
             () -> smartDriveToPosition.create(
-                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP),
+                allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP_STAGING),
                 allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP)),
             Set.of(driveSubsystem)));
-
+    new JoystickButton(driverController,XboxController.Button.kY.value)
+        .whileTrue(Commands.defer(
+            () -> smartDriveToPosition.create(
+              allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST_STAGING),
+              allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST)),
+             Set.of(driveSubsystem)));
     // ========== END NORMAL OPERATION BUTTONS ==========
 
   }
