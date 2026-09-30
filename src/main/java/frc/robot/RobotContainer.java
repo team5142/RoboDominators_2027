@@ -231,10 +231,16 @@ public class RobotContainer {
     // Holds a field-relative heading based on zone/position while driver steers with left stick.
 
     /*
-     * X and B: hold-to-drive to a fixed staging pose near the blue drive-team area,
-     * facing the hub, using PathPlanner's dynamic pathfinding (SmartDriveToPosition).
-     * X is the left face button, B is the right face button on a standard Xbox
-     * controller, matching "left pose" / "right pose" below.
+     * X and B: hold-to-drive to a fixed shooting pose near the blue drive-team area,
+     * facing the hub, using SmartDriveToPosition. X is the left face button, B is the
+     * right face button on a standard Xbox controller, matching "left pose" /
+     * "right pose" below.
+     *
+     * SmartDriveToPosition takes two poses and drives in two phases. First,
+     * PathPlanner moves quickly (but not very accurately) to the staging pose, which
+     * sits 0.62m back from the real target. Then AutoPilot takes over and creeps from
+     * the staging pose to the precise pose slowly and accurately. Passing the same
+     * pose twice would skip that handoff, so every target needs its own staging pose.
      *
      * whileTrue schedules the drive while the button is held and cancels it the
      * instant the button is released - and the command also ends on its own once
@@ -260,12 +266,15 @@ public class RobotContainer {
                 allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP_STAGING),
                 allianceAdjustedPose(Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP)),
             Set.of(driveSubsystem)));
-    new JoystickButton(driverController,XboxController.Button.kY.value)
+
+    // Y: same hold-to-drive pattern, to the ETHAN_TEST pose (a test target, not a game position).
+    new JoystickButton(driverController, XboxController.Button.kY.value)
         .whileTrue(Commands.defer(
             () -> smartDriveToPosition.create(
-              allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST_STAGING),
-              allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST)),
-             Set.of(driveSubsystem)));
+                allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST_STAGING),
+                allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST)),
+            Set.of(driveSubsystem)));
+
     // ========== END NORMAL OPERATION BUTTONS ==========
 
   }
