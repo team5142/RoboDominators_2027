@@ -7,6 +7,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -31,6 +32,7 @@ import frc.robot.util.FieldUtil;
 import frc.robot.util.SmartLogger;
 import frc.robot.util.TouchscreenInterface;
 import java.util.Set;
+import org.littletonrobotics.junction.Logger;
 
 // Wires up robot hardware, controllers, and commands
 // To grab latest 10 logs and delete them: run .\scripts\storelogs.bat
@@ -170,7 +172,25 @@ public class RobotContainer {
           config,
           this::shouldFlipPath,
           driveSubsystem);
-      
+
+      /*
+       * Send PathPlanner's internal values to AdvantageKit so we can tune its PID in
+       * AdvantageScope. Every loop while a path runs, PathPlanner reports the pose it
+       * wants the robot at right now (TargetPose). The errors are how far the robot's
+       * real pose is from that target - these are exactly what the translation and
+       * rotation PIDs are trying to push to zero.
+       */
+      PathPlannerLogging.setLogActivePathCallback(
+          poses -> Logger.recordOutput("PathPlanner/ActivePath", poses.toArray(new Pose2d[0])));
+      PathPlannerLogging.setLogTargetPoseCallback(target -> {
+        Pose2d current = poseEstimator.getEstimatedPose();
+        Logger.recordOutput("PathPlanner/TargetPose", target);
+        Logger.recordOutput("PathPlanner/TranslationErrorMeters",
+            target.getTranslation().getDistance(current.getTranslation()));
+        Logger.recordOutput("PathPlanner/RotationErrorDegrees",
+            target.getRotation().minus(current.getRotation()).getDegrees());
+      });
+
       SmartLogger.logConsole("PathPlanner configured - PID tunable in AdvantageScope", "PathPlanner");
     } catch (Exception e) {
       SmartLogger.logConsoleError("PathPlanner config failed: " + e.getMessage());

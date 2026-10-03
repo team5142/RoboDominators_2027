@@ -31,7 +31,6 @@ public class AutoPilotToTargetCommand extends Command {
       Constants.AutoPilotConstants.HEADING_KP, 0.0, Constants.AutoPilotConstants.HEADING_KD);
 
   private APTarget m_target;
-  private int execCounter = 0;
   
   public AutoPilotToTargetCommand(
       Pose2d targetPose,
@@ -59,7 +58,6 @@ public class AutoPilotToTargetCommand extends Command {
 
     SmartLogger.logConsole("AutoPilot navigating to: " + SmartLogger.formatPose(m_targetPose), "AutoPilot");
     Logger.recordOutput("AutoPilot/TargetPose", m_targetPose);
-    execCounter = 0;
   }
 
   @Override
@@ -87,13 +85,15 @@ public class AutoPilotToTargetCommand extends Command {
 
     m_driveSubsystem.driveRobotRelative(targetSpeeds);
 
-    // Throttle to 10Hz - VX/VY/Omega are debug values, not needed every loop
-    if (execCounter++ % 5 == 0) {
-      Logger.recordOutput("AutoPilot/Active", true);
-      Logger.recordOutput("AutoPilot/VX", result.vx().in(MetersPerSecond));
-      Logger.recordOutput("AutoPilot/VY", result.vy().in(MetersPerSecond));
-      Logger.recordOutput("AutoPilot/Omega", omega);
-    }
+    // Logged every loop so the heading PID can be tuned in AdvantageScope
+    Logger.recordOutput("AutoPilot/Active", true);
+    Logger.recordOutput("AutoPilot/VX", result.vx().in(MetersPerSecond));
+    Logger.recordOutput("AutoPilot/VY", result.vy().in(MetersPerSecond));
+    Logger.recordOutput("AutoPilot/Omega", omega);
+    Logger.recordOutput("AutoPilot/PositionErrorMeters",
+        m_targetPose.getTranslation().getDistance(currentPose.getTranslation()));
+    Logger.recordOutput("AutoPilot/HeadingErrorDegrees",
+        Math.toDegrees(m_headingController.getError()));
   }
   
   @Override
