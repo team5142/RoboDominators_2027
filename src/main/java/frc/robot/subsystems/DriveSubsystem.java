@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -20,7 +21,17 @@ public class DriveSubsystem extends CommandSwerveDrivetrain {
   
   // Swerve requests for different drive modes
   private final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric();
-  private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric();
+
+  /*
+   * Robot-centric requests come from the autonomous controllers (PathPlanner, AutoPilot, BLine),
+   * so they use closed-loop Velocity mode: each drive motor uses its SysId gains (DriveGains
+   * kS/kV/kP) to hit the exact wheel speed asked for. The default, open-loop voltage, just
+   * scales speed into a voltage - so the tiny speeds AutoPilot asks for near its target
+   * (a few cm/s) came out as a fraction of a volt, less than the ~0.18V (kS) needed to
+   * overcome friction, and the robot stalled short of the target.
+   */
+  private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
+      .withDriveRequestType(DriveRequestType.Velocity);
 
   private int logCounter = 0;
 
