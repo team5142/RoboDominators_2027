@@ -886,18 +886,6 @@ public final class Constants {
 
   // AutoPilot precision navigation library (singleton instances)
   public static final class AutoPilotConstants {
-    // Test profile (1m test movements)
-    private static final APConstraints TEST_CONSTRAINTS = new APConstraints()
-        .withAcceleration(5.0)
-        .withJerk(2.0);
-    
-    private static final APProfile TEST_PROFILE = new APProfile(TEST_CONSTRAINTS)
-        .withErrorXY(Centimeters.of(5))
-        .withErrorTheta(Degrees.of(2.0))
-        .withBeelineRadius(Centimeters.of(8));
-    
-    public static final Autopilot TEST_AUTOPILOT = new Autopilot(TEST_PROFILE);
-    
     // Precision profile (SmartDrive Phase 2)
     private static final APConstraints PRECISION_CONSTRAINTS = new APConstraints()
         .withAcceleration(10.0)//8 to 12
@@ -905,15 +893,20 @@ public final class Constants {
     
     private static final APProfile PRECISION_PROFILE = new APProfile(PRECISION_CONSTRAINTS)
         .withErrorXY(Centimeters.of(6))//5 to 8
-        .withErrorTheta(Degrees.of(2.5))//2 to 3
+        .withErrorTheta(Degrees.of(1.5))//1 to 3
         .withBeelineRadius(Centimeters.of(10));//8 to 12
-    
+
     public static final Autopilot PRECISION_AUTOPILOT = new Autopilot(PRECISION_PROFILE);
-    
-    public static final double DEFAULT_MAX_ACCELERATION = 8.0;
-    public static final double DEFAULT_MAX_JERK = 4.0;
-    public static final double DEFAULT_ERROR_XY_METERS = 0.05;
-    public static final double DEFAULT_ERROR_THETA_DEGREES = 2.0;
+
+    /*
+     * Heading PID for the precision approach. AutoPilot only plans X/Y motion and tells us
+     * which way to face; this controller turns that heading error into a rotation speed.
+     * Same gains as SnapToHeadingFixed, which is already proven on the robot. A plain
+     * "error = speed" rule was too weak near the target: 3 degrees off asked for only
+     * ~0.05 rad/s, not enough to turn the robot, so it stalled short of the final heading.
+     */
+    public static final double HEADING_KP = 5.0;
+    public static final double HEADING_KD = 0.1;
   }
 }
 

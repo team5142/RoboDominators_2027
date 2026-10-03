@@ -8,6 +8,7 @@ package frc.robot.commands.drive;
 
 import com.therekrab.autopilot.APTarget;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -26,6 +27,8 @@ public class AutoPilotToTargetCommand extends Command {
   private final DriveSubsystem m_driveSubsystem;
   private final PoseEstimatorSubsystem m_poseEstimator;
   private final Pose2d m_targetPose;
+  private final PIDController m_headingController = new PIDController(
+      Constants.AutoPilotConstants.HEADING_KP, 0.0, Constants.AutoPilotConstants.HEADING_KD);
 
   private APTarget m_target;
   private int execCounter = 0;
@@ -41,7 +44,10 @@ public class AutoPilotToTargetCommand extends Command {
     m_targetPose = targetPose;
     m_driveSubsystem = driveSubsystem;
     m_poseEstimator = poseEstimator;
-    
+
+    // Treat -180 and +180 degrees as the same heading, so the robot always turns the short way
+    m_headingController.enableContinuousInput(-Math.PI, Math.PI);
+
     addRequirements(driveSubsystem);
   }
   
@@ -49,6 +55,7 @@ public class AutoPilotToTargetCommand extends Command {
   public void initialize() {
     // FIXED: Just create target - AutoPilot instance is singleton
     m_target = new APTarget(m_targetPose);
+    m_headingController.reset();
 
     SmartLogger.logConsole("AutoPilot navigating to: " + SmartLogger.formatPose(m_targetPose), "AutoPilot");
     Logger.recordOutput("AutoPilot/TargetPose", m_targetPose);
@@ -65,8 +72,11 @@ public class AutoPilotToTargetCommand extends Command {
     double currentAngle = currentPose.getRotation().getRadians();
     double targetAngle = result.targetAngle().getRadians();
 
-    // Shortest-arc angle wrap - keeps omega within [-pi, pi]
-    double omega = MathUtil.angleModulus(targetAngle - currentAngle);
+    // Rotation speed from the heading PID, capped at the robot's max turn rate
+    double omega = MathUtil.clamp(
+        m_headingController.calculate(currentAngle, targetAngle),
+        -Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SEC,
+        Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SEC);
 
     ChassisSpeeds targetSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
         result.vx().in(MetersPerSecond),
