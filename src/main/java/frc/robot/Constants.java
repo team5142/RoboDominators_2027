@@ -641,9 +641,9 @@ public final class Constants {
     public static final Pose2d SHOT_SEED_HUBCLOSE   = new Pose2d(3.475, 4.005, Rotation2d.fromDegrees(0.0));
     public static final Pose2d SHOT_SEED_HUB1_7M    = new Pose2d(2.94,  4.01,  Rotation2d.fromDegrees(0.0)); // ~1.67m from hub
     public static final Pose2d SHOT_SEED_HUB_RIGHT_ACCURATE = new Pose2d(3.560, 3.850, Rotation2d.fromDegrees(90.0)); // BLUE_REBUILT_HUB_RIGHT_ACCURATE — up against hub facing left
-    public static final Pose2d SHOT_SEED_RIGHT_BUMP = new Pose2d(3.620, 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceRight start
+    public static final Pose2d SHOT_SEED_RIGHT_BUMP = new Pose2d(3.620, 2.449, Rotation2d.fromDegrees(0.0)); // ShootInPlaceRight start
     public static final Pose2d SHOT_SEED_RIGHT_BUMP_STAGING = new Pose2d(3.000, 2.515, Rotation2d.fromDegrees(0.0)); // 0.62m back from SHOT_SEED_RIGHT_BUMP
-    public static final Pose2d SHOT_SEED_LEFT_BUMP  = new Pose2d(3.620, Field.FIELD_WIDTH_METERS - 2.515, Rotation2d.fromDegrees(0.0)); // ShootInPlaceLeft start
+    public static final Pose2d SHOT_SEED_LEFT_BUMP  = new Pose2d(3.785, 5.478, Rotation2d.fromDegrees(0.0)); // ShootInPlaceLeft start
     public static final Pose2d SHOT_SEED_LEFT_BUMP_STAGING  = new Pose2d(3.000, Field.FIELD_WIDTH_METERS - 2.515, Rotation2d.fromDegrees(0.0)); // 0.62m back from SHOT_SEED_LEFT_BUMP
     public static final Pose2d SHOT_SEED_OUTPOST        = new Pose2d(0.4826, 0.4191, Rotation2d.fromDegrees(0.0)); // BLUE_REBUILT_RIGHT_CORNER / outpost start
     public static final Pose2d SHOT_SEED_BACK_WALL_RIGHT = new Pose2d(0.483, 2.500, Rotation2d.fromDegrees(0.0)); // RIGHT_CORNER measured 2026-03-17
@@ -657,7 +657,7 @@ public final class Constants {
     // Test target for the Y button, facing the blue alliance wall. Matches the waypoint in
     // deploy/autos/paths/ethan-test-path.json. The staging pose is 0.6m in front of it.
     public static final Pose2d ETHAN_TEST_STAGING = new Pose2d(1.900, 5.95, Rotation2d.fromDegrees(180.0));
-    public static final Pose2d ETHAN_TEST         = new Pose2d(1.3,   5.95, Rotation2d.fromDegrees(180.0));
+    public static final Pose2d ETHAN_TEST         = new Pose2d(1.126,   5.779, Rotation2d.fromDegrees(180.0));
 
     // AUTO RESET POSE STAGING
     public static final Pose2d BLUE_AUTO_START_POS_FAR_RIGHT = new Pose2d(5.533, 1.185, Rotation2d.fromDegrees(180.0));
