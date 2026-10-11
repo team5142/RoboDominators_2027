@@ -58,6 +58,7 @@ public class BLineAutoRoutines {
     FollowPath.registerEventTrigger("signal", Commands.runOnce(() -> ledSubsystem.setPattern(Pattern.GREEN)));
 
     registerRoutine("Ethan 2.0", "ethan2point0");
+    registerRoutine("Ethan 2 bump", "ethan_2_bump_test");
   }
 
   // Loads a BLine-Web-authored path by name (from deploy/autos/paths/<pathFileName>.json)

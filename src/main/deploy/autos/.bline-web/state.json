@@ -25,17 +25,21 @@
       "default_auto_velocity_merge_tolerance_meters_per_sec": 0.3
     }
   },
-  "active_path_file_name": "ethan-test-path.json",
+  "active_path_file_name": "ethan_2_bump_test.json",
   "active_path_group_id": null,
   "path_groups": [],
   "linked_targets": [],
   "paths": {
-    "ethan2point0.json": {
-      "display_name": "ethan2point0",
+    "ethan_2_bump_test.json": {
+      "display_name": "ethan 2 bump test",
       "editor_metadata": null
     },
     "ethan-test-path.json": {
       "display_name": "ethan_test_path",
+      "editor_metadata": null
+    },
+    "ethan2point0.json": {
+      "display_name": "ethan2point0",
       "editor_metadata": null
     }
   },
