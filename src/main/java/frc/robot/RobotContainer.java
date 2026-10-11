@@ -74,9 +74,6 @@ public class RobotContainer {
   private final SendableChooser<String> autoChooser;
   private String lastSelectedAuto = null; // Track selection for preview updates
 
-  // Shot seed pose chooser — shown in Elastic as a dropdown; START button reads the selection.
-  private final SendableChooser<Pose2d> shotSeedChooser = new SendableChooser<>();
-
   // Force the auto preview to reapply pose/orientation once on every boot
   private boolean bootPreviewApplied = false;
 
@@ -128,21 +125,6 @@ public class RobotContainer {
     robotState.setSysIdMode(SYSID_MODE);
     poseEstimator.setAutoChooser(autoChooser); // Lets pose estimator read auto start poses
     poseEstimator.getPoseInitializer().setAutoRoutines(blineAutoRoutines); // Lets pose estimator look up start poses by routine name
-
-    shotSeedChooser.setDefaultOption("HUBCLOSE (1.28m)", Constants.StartingPositions.SHOT_SEED_HUBCLOSE);
-    shotSeedChooser.addOption("HUB 1.7M (1.67m)", Constants.StartingPositions.SHOT_SEED_HUB1_7M);
-    shotSeedChooser.addOption("HUB RIGHT ACCURATE (1.07m)", Constants.StartingPositions.SHOT_SEED_HUB_RIGHT_ACCURATE);
-    shotSeedChooser.addOption("RIGHT BUMP (2.03m)", Constants.StartingPositions.SHOT_SEED_RIGHT_BUMP);
-    shotSeedChooser.addOption("LEFT BUMP (2.03m)",  Constants.StartingPositions.SHOT_SEED_LEFT_BUMP);
-    shotSeedChooser.addOption("2M",   Constants.StartingPositions.SHOT_SEED_2M);
-    shotSeedChooser.addOption("2.5M", Constants.StartingPositions.SHOT_SEED_2_5M);
-    shotSeedChooser.addOption("3M",   Constants.StartingPositions.SHOT_SEED_3M);
-    shotSeedChooser.addOption("4M",   Constants.StartingPositions.SHOT_SEED_4M);
-    shotSeedChooser.addOption("4.5M", Constants.StartingPositions.SHOT_SEED_4_5M);
-    shotSeedChooser.addOption("OUTPOST (5.48m)", Constants.StartingPositions.SHOT_SEED_OUTPOST);
-    shotSeedChooser.addOption("BACK WALL RIGHT (4.59m)", Constants.StartingPositions.SHOT_SEED_BACK_WALL_RIGHT);
-    shotSeedChooser.addOption("RIGHT CORNER (4.59m)", Constants.StartingPositions.SHOT_SEED_RIGHT_CORNER);
-    SmartDashboard.putData("Shot Seed Pose", shotSeedChooser);
 
     SmartLogger.logConsole("RobotContainer initialized - all subsystems ready", "Init Complete", 5);
   }
@@ -216,27 +198,24 @@ public class RobotContainer {
 
     // ========== UTILITY BUTTONS (ALWAYS ACTIVE) ==========
 
-    // BACK: Reset field orientation
-    new JoystickButton(driverController, XboxController.Button.kBack.value)
-        .onTrue(driveSubsystem.createOrientToFieldCommand());
-
-    // START: Seed pose selected from "Shot Seed Pose" dropdown in Elastic.
-    // Poses are defined in blue coordinates — flipped automatically when on red alliance.
-    // isRed is derived from the final seeded pose X (> field midpoint = red) rather than
-    // robotState.getAlliance(), because that may not have updated yet when the button is pressed.
+    /*
+     * START: fix the robot's heading without moving its position. Use this when the robot
+     * was turned on facing the wrong way (usually when testing without running an auto).
+     * Point the robot straight downfield FIRST, then press START.
+     *
+     * It keeps the robot's current X/Y and sets its heading to downfield for our alliance
+     * (blue = 0 deg, toward the red wall; red = 180 deg, toward the blue wall).
+     * SetStartingPoseCommand applies that heading everywhere it needs to go at once: the
+     * gyro, the pose estimator, QuestNav, and the driver's field-centric "forward".
+     */
     new JoystickButton(driverController, XboxController.Button.kStart.value)
         .onTrue(Commands.runOnce(() -> {
-          Pose2d seed = shotSeedChooser.getSelected();
-          if (seed == null) seed = Constants.StartingPositions.SHOT_SEED_2M;
-          boolean seedIsRed = robotState.getAlliance() == Alliance.Red;
-          if (seedIsRed) {
-            seed = FieldUtil.mirrorPoseForRed(seed);
-          }
-          // Determine perspective from the final pose X so it's correct even if robotState's
-          // alliance hasn't updated yet. X > midpoint means the robot is on the red side of the field.
-          boolean poseIsRed = seed.getX() > Constants.Field.FIELD_LENGTH_METERS / 2.0;
-          CommandScheduler.getInstance().schedule(
-              new SetStartingPoseCommand(seed, "SHOT SEED", gyro, questNav, driveSubsystem, poseEstimator, poseIsRed));
+          boolean isRed = robotState.getAlliance() == Alliance.Red;
+          Rotation2d downfield = Rotation2d.fromDegrees(isRed ? 180.0 : 0.0);
+          Pose2d hereFacingDownfield =
+              new Pose2d(poseEstimator.getEstimatedPose().getTranslation(), downfield);
+          CommandScheduler.getInstance().schedule(new SetStartingPoseCommand(
+              hereFacingDownfield, "ORIENT DOWNFIELD", gyro, questNav, driveSubsystem, poseEstimator));
         }));
 
     // D-PAD DOWN: Toggle QuestNav emergency mode.
