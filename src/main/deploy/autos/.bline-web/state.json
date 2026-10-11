@@ -30,12 +30,12 @@
   "path_groups": [],
   "linked_targets": [],
   "paths": {
-    "ethan_2_bump_test.json": {
-      "display_name": "ethan 2 bump test",
-      "editor_metadata": null
-    },
     "ethan-test-path.json": {
       "display_name": "ethan_test_path",
+      "editor_metadata": null
+    },
+    "ethan_2_bump_test.json": {
+      "display_name": "ethan 2 bump test",
       "editor_metadata": null
     },
     "ethan2point0.json": {

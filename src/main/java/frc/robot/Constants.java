@@ -656,8 +656,8 @@ public final class Constants {
 
     // Test target for the Y button, facing the blue alliance wall. Matches the waypoint in
     // deploy/autos/paths/ethan-test-path.json. The staging pose is 0.6m in front of it.
-    public static final Pose2d JONAH_TEST_STAGING = new Pose2d(2.500, 6.00, Rotation2d.fromDegrees(90.0));
-    public static final Pose2d JONAH_TEST         = new Pose2d(2.500,   6.500, Rotation2d.fromDegrees(90.0));
+    public static final Pose2d JONAH_TEST_STAGING = new Pose2d(2.72, 7.00, Rotation2d.fromDegrees(270.0));
+    public static final Pose2d JONAH_TEST         = new Pose2d(2.72,   7.495, Rotation2d.fromDegrees(270.0));
     public static final Pose2d ETHAN_TEST_STAGING = new Pose2d(1.900, 5.95, Rotation2d.fromDegrees(180.0));
     public static final Pose2d ETHAN_TEST         = new Pose2d(1.126,   5.779, Rotation2d.fromDegrees(180.0));
 
