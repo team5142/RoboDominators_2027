@@ -294,6 +294,12 @@ public class RobotContainer {
                 allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST_STAGING),
                 allianceAdjustedPose(Constants.StartingPositions.ETHAN_TEST)),
             Set.of(driveSubsystem)));
+    new JoystickButton(driverController, XboxController.Button.kA.value)
+        .whileTrue(Commands.defer(
+            () -> smartDriveToPosition.create(
+                allianceAdjustedPose(Constants.StartingPositions.JONAH_TEST_STAGING),
+                allianceAdjustedPose(Constants.StartingPositions.JONAH_TEST)),
+            Set.of(driveSubsystem)));
 
     // ========== END NORMAL OPERATION BUTTONS ==========
 
